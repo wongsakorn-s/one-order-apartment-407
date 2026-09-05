@@ -54,3 +54,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 	var actor_name: String = actor.name if actor != null else actor_id
 	var origin: String = from_location if not from_location.is_empty() else (actor.current_location if actor != null else "somewhere")
 	return "%s moved from %s to %s" % [actor_name, origin.capitalize(), target_id.capitalize()]
+

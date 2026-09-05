@@ -63,3 +63,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 		var source_name: String = source_char.name if source_char != null else source_character_id
 		return "%s took %s from %s" % [actor_name, target_id, source_name]
 	return "%s took %s" % [actor_name, target_id]
+

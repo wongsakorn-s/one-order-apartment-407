@@ -51,3 +51,4 @@ func get_readable_text() -> String:
 	var hours: int = (total_seconds / 3600) % 24
 	var minutes: int = (total_seconds % 3600) / 60
 	return "%02d:%02d - %s" % [hours, minutes, description]
+

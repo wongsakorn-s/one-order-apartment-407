@@ -24,3 +24,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 	var actor_name: String = actor.name if actor != null else actor_id
 	var loc_name: String = actor.current_location if actor != null else "their location"
 	return "%s is idling in %s" % [actor_name, loc_name.capitalize()]
+

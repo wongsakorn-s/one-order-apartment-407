@@ -352,3 +352,4 @@ static func _test_runner_action_integration() -> Dictionary:
 
 	runner.free()
 	return {"name": "test_runner_action_integration", "passed": true}
+

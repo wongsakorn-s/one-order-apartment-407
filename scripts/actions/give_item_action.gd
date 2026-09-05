@@ -61,3 +61,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 	var a_name: String = actor.name if actor != null else actor_id
 	var t_name: String = target.name if target != null else target_id
 	return "%s gave %s to %s" % [a_name, item_name, t_name]
+

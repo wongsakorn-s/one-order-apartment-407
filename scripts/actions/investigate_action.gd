@@ -52,3 +52,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 	var actor = characters.get(actor_id, null)
 	var actor_name: String = actor.name if actor != null else actor_id
 	return "%s investigated %s" % [actor_name, target_id.capitalize()]
+

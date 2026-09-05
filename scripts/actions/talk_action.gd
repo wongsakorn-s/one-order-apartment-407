@@ -57,3 +57,4 @@ func get_readable_description(context: Dictionary = {}) -> String:
 	var t_name: String = target.name if target != null else target_id
 	var loc_name: String = actor.current_location if actor != null else "their location"
 	return "%s talked with %s in %s" % [a_name, t_name, loc_name.capitalize()]
+
