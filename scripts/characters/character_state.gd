@@ -140,3 +140,4 @@ func get_debug_summary() -> String:
 	lines.append("\n[Inventory]: %s" % str(inventory))
 	lines.append("[Goals]: %s" % str(goals))
 	return "\n".join(lines)
+

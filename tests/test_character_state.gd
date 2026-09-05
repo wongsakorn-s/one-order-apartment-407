@@ -206,3 +206,4 @@ static func _test_attribute_clamping() -> Dictionary:
 		return {"name": "test_attribute_clamping", "passed": false, "error": "Emotion below 0.0 was not clamped to 0.0"}
 
 	return {"name": "test_attribute_clamping", "passed": true}
+
