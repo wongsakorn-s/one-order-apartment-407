@@ -67,6 +67,8 @@ func bind_runner(runner: SimulationRunner) -> void:
 		runner.speed_multiplier_changed.connect(_on_speed_multiplier_changed)
 	if not runner.simulation_completed.is_connected(_on_simulation_completed):
 		runner.simulation_completed.connect(_on_simulation_completed)
+	if not runner.seed_changed.is_connected(_on_seed_changed):
+		runner.seed_changed.connect(_on_seed_changed)
 
 	_refresh_display()
 
@@ -79,6 +81,8 @@ func _unbind_runner(runner: SimulationRunner) -> void:
 		runner.speed_multiplier_changed.disconnect(_on_speed_multiplier_changed)
 	if runner.simulation_completed.is_connected(_on_simulation_completed):
 		runner.simulation_completed.disconnect(_on_simulation_completed)
+	if runner.seed_changed.is_connected(_on_seed_changed):
+		runner.seed_changed.disconnect(_on_seed_changed)
 
 func _refresh_display() -> void:
 	_ensure_node_references()
@@ -93,6 +97,11 @@ func _refresh_display() -> void:
 			time_label.text = clock.get_formatted_time(true)
 		_update_pause_ui(clock.is_paused())
 		_update_speed_buttons(clock.get_speed_multiplier())
+
+func _on_seed_changed(new_seed: int) -> void:
+	_ensure_node_references()
+	if seed_label != null:
+		seed_label.text = "Seed: %d" % new_seed
 
 func _on_time_updated(_sim_time_seconds: float, formatted_time: String) -> void:
 	_ensure_node_references()
@@ -125,6 +134,8 @@ func _update_pause_ui(is_paused: bool) -> void:
 	_ensure_node_references()
 	if pause_button == null or status_label == null:
 		return
+
+	pause_button.disabled = false
 	if is_paused:
 		pause_button.text = "Resume"
 		status_label.text = "[PAUSED]"
@@ -149,4 +160,3 @@ func _style_speed_button(btn: Button, is_active: bool) -> void:
 		btn.modulate = Color(0.4, 0.85, 1.0, 1.0)
 	else:
 		btn.modulate = Color(0.75, 0.75, 0.75, 0.85)
-

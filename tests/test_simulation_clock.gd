@@ -11,6 +11,7 @@ static func run_all() -> Array[Dictionary]:
 	results.append(_test_advancement_at_1x())
 	results.append(_test_pause_behavior())
 	results.append(_test_speed_multipliers())
+	results.append(_test_speed_multiplier_validation())
 	results.append(_test_simulation_end_boundary())
 	results.append(_test_reset())
 	return results
@@ -90,6 +91,29 @@ static func _test_speed_multipliers() -> Dictionary:
 
 	return {"name": "test_speed_multipliers", "passed": true}
 
+static func _test_speed_multiplier_validation() -> Dictionary:
+	var clock = SimulationClockClass.new()
+	clock.set_speed_multiplier(1.0)
+
+	# Invalid speeds must be rejected
+	clock.set_speed_multiplier(0.5)
+	if not is_equal_approx(clock.get_speed_multiplier(), 1.0):
+		return {"name": "test_speed_multiplier_validation", "passed": false, "error": "0.5 speed should be rejected"}
+
+	clock.set_speed_multiplier(3.0)
+	if not is_equal_approx(clock.get_speed_multiplier(), 1.0):
+		return {"name": "test_speed_multiplier_validation", "passed": false, "error": "3.0 speed should be rejected"}
+
+	clock.set_speed_multiplier(-2.0)
+	if not is_equal_approx(clock.get_speed_multiplier(), 1.0):
+		return {"name": "test_speed_multiplier_validation", "passed": false, "error": "Negative speed should be rejected"}
+
+	clock.set_speed_multiplier(100.0)
+	if not is_equal_approx(clock.get_speed_multiplier(), 1.0):
+		return {"name": "test_speed_multiplier_validation", "passed": false, "error": "Out of bounds speed should be rejected"}
+
+	return {"name": "test_speed_multiplier_validation", "passed": true}
+
 static func _test_simulation_end_boundary() -> Dictionary:
 	var clock = SimulationClockClass.new()
 	var completed_fired: Array[bool] = [false]
@@ -138,4 +162,3 @@ static func _test_reset() -> Dictionary:
 		return {"name": "test_reset", "passed": false, "error": "Clock reset did not reset speed to 1x"}
 
 	return {"name": "test_reset", "passed": true}
-

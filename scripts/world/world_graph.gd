@@ -156,3 +156,4 @@ static func create_default_apartment() -> WorldGraph:
 	graph.add_edge("hallway_2", "room_407")
 
 	return graph
+

@@ -9,6 +9,7 @@ static func run_all(_tree: SceneTree = null) -> Array[Dictionary]:
 	var results: Array[Dictionary] = []
 	results.append(_test_main_scene_instantiation_and_wiring())
 	results.append(_test_ui_interactions())
+	results.append(_test_reset_updates_ui())
 	return results
 
 static func _test_main_scene_instantiation_and_wiring() -> Dictionary:
@@ -109,3 +110,39 @@ static func _test_ui_interactions() -> Dictionary:
 	main.free()
 	return {"name": "test_ui_interactions", "passed": true}
 
+static func _test_reset_updates_ui() -> Dictionary:
+	var main = MainScene.instantiate()
+	if main == null:
+		return {"name": "test_reset_updates_ui", "passed": false, "error": "Failed to instantiate Main scene"}
+
+	var runner: SimulationRunner = main.get_node_or_null("SimulationRunner") as SimulationRunner
+	var ui: MainUI = main.get_node_or_null("MainUI") as MainUI
+
+	runner._ready()
+	ui.bind_runner(runner)
+
+	# Simulate completion
+	runner.get_clock().advance(720.0)
+	if ui.pause_button.disabled != true:
+		main.free()
+		return {"name": "test_reset_updates_ui", "passed": false, "error": "Pause button should be disabled when completed"}
+
+	# Reset with a new seed
+	runner.reset_simulation(99999)
+
+	if ui.seed_label.text != "Seed: 99999":
+		var text = ui.seed_label.text
+		main.free()
+		return {"name": "test_reset_updates_ui", "passed": false, "error": "UI seed label did not update on reset: %s" % text}
+
+	if ui.pause_button.disabled != false:
+		main.free()
+		return {"name": "test_reset_updates_ui", "passed": false, "error": "Pause button was not re-enabled after reset"}
+
+	if not ui.time_label.text.begins_with("18:00"):
+		var text = ui.time_label.text
+		main.free()
+		return {"name": "test_reset_updates_ui", "passed": false, "error": "Time label was not restored to 18:00 after reset: %s" % text}
+
+	main.free()
+	return {"name": "test_reset_updates_ui", "passed": true}

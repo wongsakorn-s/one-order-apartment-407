@@ -8,6 +8,7 @@ signal time_updated(sim_time_seconds: float, formatted_time: String)
 signal pause_state_changed(is_paused: bool)
 signal speed_multiplier_changed(multiplier: float)
 signal simulation_completed()
+signal seed_changed(current_seed: int)
 
 @export var initial_seed: int = 12345
 
@@ -32,6 +33,7 @@ func _init_simulation() -> void:
 	time_updated.emit(clock.get_current_sim_seconds(), clock.get_formatted_time(true))
 	pause_state_changed.emit(clock.is_paused())
 	speed_multiplier_changed.emit(clock.get_speed_multiplier())
+	seed_changed.emit(get_seed())
 
 func _physics_process(delta: float) -> void:
 	if clock != null:
@@ -76,6 +78,7 @@ func reset_simulation(new_seed: int = -1) -> void:
 		clock.reset()
 
 	world_graph = WorldGraph.create_default_apartment()
+	seed_changed.emit(get_seed())
 
 func _on_clock_time_advanced(sim_time: float, formatted_time: String) -> void:
 	time_updated.emit(sim_time, formatted_time)

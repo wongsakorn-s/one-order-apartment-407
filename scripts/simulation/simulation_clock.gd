@@ -58,9 +58,9 @@ func set_paused(paused: bool) -> void:
 func is_paused() -> bool:
 	return _is_paused
 
-## Set speed multiplier (supported: 1.0, 2.0, 4.0).
+## Set speed multiplier (strictly supported: 1.0, 2.0, 4.0).
 func set_speed_multiplier(multiplier: float) -> void:
-	if not multiplier in ALLOWED_SPEEDS and multiplier <= 0.0:
+	if not multiplier in ALLOWED_SPEEDS:
 		return
 	if is_equal_approx(_speed_multiplier, multiplier):
 		return
@@ -99,4 +99,3 @@ func reset() -> void:
 	pause_toggled.emit(_is_paused)
 	speed_changed.emit(_speed_multiplier)
 	time_advanced.emit(_current_sim_seconds, get_formatted_time(true))
-

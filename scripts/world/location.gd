@@ -46,3 +46,4 @@ func has_tag(tag: String) -> bool:
 func add_tag(tag: String) -> void:
 	if not tag.is_empty() and not tag in tags:
 		tags.append(tag)
+

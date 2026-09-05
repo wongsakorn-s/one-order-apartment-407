@@ -150,33 +150,35 @@ func _draw() -> void:
 		var border_width: float = 3.0 if loc_id == "room_407" else 1.5
 		draw_rect(rect, border_color, false, border_width)
 
-		# Draw Text Titles
-		var text_pos_y: float = rect.position.y + 28.0
-		if loc_id == "stairwell":
-			text_pos_y = rect.position.y + rect.size.y * 0.5 - 10.0
+		# Draw Text Titles (with font null guard)
+		if font != null:
+			var text_pos_y: float = rect.position.y + 28.0
+			if loc_id == "stairwell":
+				text_pos_y = rect.position.y + rect.size.y * 0.5 - 10.0
 
-		draw_string(
-			font,
-			Vector2(rect.position.x + 10.0, text_pos_y),
-			display_title,
-			HORIZONTAL_ALIGNMENT_LEFT,
-			rect.size.x - 20.0,
-			14,
-			title_color
-		)
-
-		if not tag_str.is_empty():
 			draw_string(
 				font,
-				Vector2(rect.position.x + 10.0, text_pos_y + 18.0),
-				tag_str,
+				Vector2(rect.position.x + 10.0, text_pos_y),
+				display_title,
 				HORIZONTAL_ALIGNMENT_LEFT,
 				rect.size.x - 20.0,
-				10,
-				Color(border_color.r, border_color.g, border_color.b, 0.85)
+				14,
+				title_color
 			)
 
-	# 6. Floor Level Indicators on the left
-	draw_string(font, Vector2(60, 255), "FLOOR 2", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
-	draw_string(font, Vector2(60, 430), "FLOOR 1", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
-	draw_string(font, Vector2(60, 605), "GROUND", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
+			if not tag_str.is_empty():
+				draw_string(
+					font,
+					Vector2(rect.position.x + 10.0, text_pos_y + 18.0),
+					tag_str,
+					HORIZONTAL_ALIGNMENT_LEFT,
+					rect.size.x - 20.0,
+					10,
+					Color(border_color.r, border_color.g, border_color.b, 0.85)
+				)
+
+	# 6. Floor Level Indicators on the left (with font null guard)
+	if font != null:
+		draw_string(font, Vector2(60, 255), "FLOOR 2", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
+		draw_string(font, Vector2(60, 430), "FLOOR 1", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
+		draw_string(font, Vector2(60, 605), "GROUND", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))

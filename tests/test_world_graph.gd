@@ -171,3 +171,4 @@ static func _test_pure_simulation_separation() -> Dictionary:
 		return {"name": "test_pure_simulation_separation", "passed": false, "error": "WorldGraph must not inherit from Node"}
 
 	return {"name": "test_pure_simulation_separation", "passed": true}
+
