@@ -53,6 +53,18 @@ var current_action: Dictionary = {
 	"description": "Idle"
 }
 var last_decision: Dictionary = {}
+var directives: Dictionary = {}
+
+func set_directives(p_want: Variant, p_never: Variant, p_believe: Variant) -> void:
+	directives["want"] = p_want
+	directives["never"] = p_never
+	directives["believe"] = p_believe
+
+func get_directive(type: String) -> Variant:
+	return directives.get(type, null)
+
+func has_directives() -> bool:
+	return not directives.is_empty() and (directives.get("want") != null or directives.get("never") != null or directives.get("believe") != null)
 
 func _init(
 	p_id: String = "",
@@ -156,7 +168,12 @@ func to_dict() -> Dictionary:
 		"beliefs": beliefs.duplicate(),
 		"relationships": relationships.duplicate(),
 		"current_action": current_action.duplicate(),
-		"last_decision": last_decision.duplicate(true)
+		"last_decision": last_decision.duplicate(true),
+		"directives": {
+			"want": directives["want"].to_dict() if directives.get("want") != null else null,
+			"never": directives["never"].to_dict() if directives.get("never") != null else null,
+			"believe": directives["believe"].to_dict() if directives.get("believe") != null else null
+		}
 	}
 
 ## Return human-readable multiline debug representation of character state.
@@ -165,6 +182,15 @@ func get_debug_summary() -> String:
 	lines.append("=== Character [%s: %s] %s ===" % [id, name, "(PROTAGONIST)" if is_protagonist else "(NPC)"])
 	lines.append("Location: %s" % current_location)
 	lines.append("Action: %s (%s)" % [current_action.get("id", "none"), current_action.get("description", "")])
+
+	if has_directives():
+		lines.append("\n[Directives (Player)]")
+		if directives.get("want") != null:
+			lines.append("  WANT: %s (%s)" % [directives["want"].title, directives["want"].id])
+		if directives.get("never") != null:
+			lines.append("  NEVER: %s (%s)" % [directives["never"].title, directives["never"].id])
+		if directives.get("believe") != null:
+			lines.append("  BELIEVE: %s (%s)" % [directives["believe"].title, directives["believe"].id])
 
 	if not last_decision.is_empty():
 		lines.append("\n[Utility Decision]")

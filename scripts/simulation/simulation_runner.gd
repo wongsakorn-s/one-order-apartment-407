@@ -11,12 +11,14 @@ signal simulation_completed()
 signal seed_changed(current_seed: int)
 signal characters_updated()
 signal event_emitted(event_dict: Dictionary)
+signal directives_updated(want_dict: Dictionary, never_dict: Dictionary, believe_dict: Dictionary)
 
 const CharacterStateClass = preload("res://scripts/characters/character_state.gd")
 const NPCGeneratorClass = preload("res://scripts/generation/npc_generator.gd")
 const SimulationEventClass = preload("res://scripts/events/simulation_event.gd")
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
+const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
 
 @export var initial_seed: int = 12345
 
@@ -24,6 +26,9 @@ var clock: SimulationClock
 var random_service: RandomService
 var world_graph: WorldGraph
 var utility_ai: UtilityAI
+var active_want_id: String = "learn_room_407"
+var active_never_id: String = "never_steal"
+var active_belief_id: String = "everyone_hiding_something"
 var _characters: Dictionary = {}
 var _events: Array[Dictionary] = []
 
@@ -77,6 +82,7 @@ func spawn_initial_characters() -> void:
 		{"id": "SurviveNight", "type": "survive_night", "target": "", "target_name": "", "description": "Survive until morning"},
 		{"id": "InvestigateLocation", "type": "investigate_location", "target": "room_407", "target_name": "Room 407", "description": "Investigate Room 407"}
 	]
+	_apply_player_directives(protagonist)
 	_characters[protagonist.id] = protagonist
 
 	# 2. Procedurally Generate 8 NPCs using seeded random_service
@@ -187,7 +193,13 @@ func get_clock() -> SimulationClock:
 func get_random_service() -> RandomService:
 	return random_service
 
+func get_rng() -> RandomService:
+	return random_service
+
 func get_world_graph() -> WorldGraph:
+	return world_graph
+
+func get_world() -> WorldGraph:
 	return world_graph
 
 func get_character(id: String) -> CharacterState:
@@ -241,6 +253,40 @@ func reset_simulation(new_seed: int = -1) -> void:
 
 func get_utility_ai() -> UtilityAI:
 	return utility_ai
+
+func set_player_directives(want_id: String, never_id: String, belief_id: String) -> void:
+	active_want_id = want_id
+	active_never_id = never_id
+	active_belief_id = belief_id
+
+	var protagonist = get_protagonist()
+	if protagonist != null:
+		_apply_player_directives(protagonist)
+		characters_updated.emit()
+
+func _apply_player_directives(protagonist: CharacterState) -> void:
+	if protagonist == null:
+		return
+	var want_dir = DirectiveCatalogClass.get_want_by_id(active_want_id)
+	var never_dir = DirectiveCatalogClass.get_never_by_id(active_never_id)
+	var belief_dir = DirectiveCatalogClass.get_belief_by_id(active_belief_id)
+
+	protagonist.set_directives(want_dir, never_dir, belief_dir)
+	directives_updated.emit(want_dir.to_dict(), never_dir.to_dict(), belief_dir.to_dict())
+
+func get_player_directives() -> Dictionary:
+	return {
+		"want": DirectiveCatalogClass.get_want_by_id(active_want_id),
+		"never": DirectiveCatalogClass.get_never_by_id(active_never_id),
+		"believe": DirectiveCatalogClass.get_belief_by_id(active_belief_id)
+	}
+
+func get_player_directive_ids() -> Dictionary:
+	return {
+		"want": active_want_id,
+		"never": active_never_id,
+		"believe": active_belief_id
+	}
 
 func _on_clock_time_advanced(sim_time: float, formatted_time: String) -> void:
 	time_updated.emit(sim_time, formatted_time)

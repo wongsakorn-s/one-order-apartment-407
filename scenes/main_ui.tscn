@@ -75,6 +75,12 @@ text = "[RUNNING]"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="DirectivesButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(130, 32)
+layout_mode = 2
+text = "Directives Setup"
+
 [node name="InspectButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 32)
@@ -180,3 +186,121 @@ size_flags_vertical = 3
 theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 text = "Select a character to inspect."
+
+[node name="SetupPanel" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -260.0
+offset_top = -220.0
+offset_right = 260.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="SetupMargin" type="MarginContainer" parent="RootControl/SetupPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 16
+
+[node name="SetupVBox" type="VBoxContainer" parent="RootControl/SetupPanel/SetupMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SetupHeaderHBox" type="HBoxContainer" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+
+[node name="SetupTitle" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox/SetupHeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.95, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "PLAYER DIRECTIVES SETUP"
+
+[node name="SetupHeaderSpacer" type="Control" parent="RootControl/SetupPanel/SetupMargin/SetupVBox/SetupHeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseSetupButton" type="Button" parent="RootControl/SetupPanel/SetupMargin/SetupVBox/SetupHeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+text = "X"
+
+[node name="SetupSubtitle" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+text = "Configure protagonist Alex's mindset for the night."
+
+[node name="HSeparator1" type="HSeparator" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+
+[node name="WantLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
+theme_override_font_sizes/font_size = 13
+text = "1. WANT (Primary Intention):"
+
+[node name="WantOptionButton" type="OptionButton" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="WantDescLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.8, 1)
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+text = "Description of chosen WANT"
+
+[node name="NeverLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.45, 0.45, 1)
+theme_override_font_sizes/font_size = 13
+text = "2. NEVER (Strict Prohibition):"
+
+[node name="NeverOptionButton" type="OptionButton" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="NeverDescLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.7, 0.7, 1)
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+text = "Description of chosen NEVER"
+
+[node name="BelieveLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.75, 1, 1)
+theme_override_font_sizes/font_size = 13
+text = "3. BELIEVE (Worldview Bias):"
+
+[node name="BelieveOptionButton" type="OptionButton" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BelieveDescLabel" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+text = "Description of chosen BELIEVE"
+
+[node name="HSeparator2" type="HSeparator" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+layout_mode = 2
+
+[node name="StartSimulationButton" type="Button" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Apply Directives & Start Simulation"

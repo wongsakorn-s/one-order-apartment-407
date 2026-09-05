@@ -246,7 +246,26 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
 
-	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + controlled_noise - risk
+	# Player Directives evaluation (Applied exclusively to the protagonist)
+	var want_mod: float = 0.0
+	var never_mod: float = 0.0
+	var belief_mod: float = 0.0
+
+	if actor.is_protagonist and actor.has_directives():
+		var want_dir = actor.get_directive("want")
+		if want_dir != null and want_dir.has_method("calculate_utility"):
+			want_mod = want_dir.calculate_utility(actor, action, context)
+
+		var never_dir = actor.get_directive("never")
+		if never_dir != null and never_dir.has_method("evaluate_violation"):
+			var violation_data: Dictionary = never_dir.evaluate_violation(actor, action, context)
+			never_mod = float(violation_data.get("penalty", 0.0))
+
+		var belief_dir = actor.get_directive("believe")
+		if belief_dir != null and belief_dir.has_method("modify_interpretation"):
+			belief_mod = belief_dir.modify_interpretation(actor, action, context)
+
+	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
 
 	var reasons_dict: Dictionary = {
 		"base": base_score,
@@ -258,6 +277,11 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		"noise": controlled_noise,
 		"risk": -risk
 	}
+
+	if actor.is_protagonist and actor.has_directives():
+		reasons_dict["want"] = want_mod
+		reasons_dict["never"] = never_mod
+		reasons_dict["believe"] = belief_mod
 
 	var explanation_text: String = _format_explanation(action, total_score, reasons_dict)
 

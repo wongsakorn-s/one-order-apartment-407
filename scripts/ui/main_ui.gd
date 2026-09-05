@@ -5,6 +5,8 @@ extends CanvasLayer
 ## and a Character Debug Inspector.
 ## Listens to signals from SimulationRunner and sends user commands.
 
+const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
+
 @export var simulation_runner: SimulationRunner
 
 @onready var time_label: Label = %TimeLabel
@@ -15,11 +17,22 @@ extends CanvasLayer
 @onready var speed_2x_button: Button = %Speed2xButton
 @onready var speed_4x_button: Button = %Speed4xButton
 
+@onready var directives_button: Button = %DirectivesButton
 @onready var inspect_button: Button = %InspectButton
 @onready var debug_panel: PanelContainer = %DebugPanel
 @onready var close_inspect_button: Button = %CloseInspectButton
 @onready var character_option_button: OptionButton = %CharacterOptionButton
 @onready var debug_text: RichTextLabel = %DebugText
+
+@onready var setup_panel: PanelContainer = %SetupPanel
+@onready var close_setup_button: Button = %CloseSetupButton
+@onready var want_option_button: OptionButton = %WantOptionButton
+@onready var want_desc_label: Label = %WantDescLabel
+@onready var never_option_button: OptionButton = %NeverOptionButton
+@onready var never_desc_label: Label = %NeverDescLabel
+@onready var believe_option_button: OptionButton = %BelieveOptionButton
+@onready var believe_desc_label: Label = %BelieveDescLabel
+@onready var start_simulation_button: Button = %StartSimulationButton
 
 func _ready() -> void:
 	_ensure_node_references()
@@ -32,12 +45,27 @@ func _ready() -> void:
 	if speed_4x_button != null and not speed_4x_button.pressed.is_connected(_on_speed_4x_pressed):
 		speed_4x_button.pressed.connect(_on_speed_4x_pressed)
 
+	if directives_button != null and not directives_button.pressed.is_connected(_on_directives_pressed):
+		directives_button.pressed.connect(_on_directives_pressed)
+	if close_setup_button != null and not close_setup_button.pressed.is_connected(_on_close_setup_pressed):
+		close_setup_button.pressed.connect(_on_close_setup_pressed)
+	if want_option_button != null and not want_option_button.item_selected.is_connected(_on_want_selected):
+		want_option_button.item_selected.connect(_on_want_selected)
+	if never_option_button != null and not never_option_button.item_selected.is_connected(_on_never_selected):
+		never_option_button.item_selected.connect(_on_never_selected)
+	if believe_option_button != null and not believe_option_button.item_selected.is_connected(_on_believe_selected):
+		believe_option_button.item_selected.connect(_on_believe_selected)
+	if start_simulation_button != null and not start_simulation_button.pressed.is_connected(_on_start_simulation_pressed):
+		start_simulation_button.pressed.connect(_on_start_simulation_pressed)
+
 	if inspect_button != null and not inspect_button.pressed.is_connected(_on_inspect_pressed):
 		inspect_button.pressed.connect(_on_inspect_pressed)
 	if close_inspect_button != null and not close_inspect_button.pressed.is_connected(_on_close_inspect_pressed):
 		close_inspect_button.pressed.connect(_on_close_inspect_pressed)
 	if character_option_button != null and not character_option_button.item_selected.is_connected(_on_character_selected):
 		character_option_button.item_selected.connect(_on_character_selected)
+
+	_populate_directives_options()
 
 	if simulation_runner != null:
 		bind_runner(simulation_runner)
@@ -58,6 +86,8 @@ func _ensure_node_references() -> void:
 	if speed_4x_button == null:
 		speed_4x_button = get_node_or_null("%Speed4xButton") as Button
 
+	if directives_button == null:
+		directives_button = get_node_or_null("%DirectivesButton") as Button
 	if inspect_button == null:
 		inspect_button = get_node_or_null("%InspectButton") as Button
 	if debug_panel == null:
@@ -68,6 +98,25 @@ func _ensure_node_references() -> void:
 		character_option_button = get_node_or_null("%CharacterOptionButton") as OptionButton
 	if debug_text == null:
 		debug_text = get_node_or_null("%DebugText") as RichTextLabel
+
+	if setup_panel == null:
+		setup_panel = get_node_or_null("%SetupPanel") as PanelContainer
+	if close_setup_button == null:
+		close_setup_button = get_node_or_null("%CloseSetupButton") as Button
+	if want_option_button == null:
+		want_option_button = get_node_or_null("%WantOptionButton") as OptionButton
+	if want_desc_label == null:
+		want_desc_label = get_node_or_null("%WantDescLabel") as Label
+	if never_option_button == null:
+		never_option_button = get_node_or_null("%NeverOptionButton") as OptionButton
+	if never_desc_label == null:
+		never_desc_label = get_node_or_null("%NeverDescLabel") as Label
+	if believe_option_button == null:
+		believe_option_button = get_node_or_null("%BelieveOptionButton") as OptionButton
+	if believe_desc_label == null:
+		believe_desc_label = get_node_or_null("%BelieveDescLabel") as Label
+	if start_simulation_button == null:
+		start_simulation_button = get_node_or_null("%StartSimulationButton") as Button
 
 func _on_speed_1x_pressed() -> void:
 	_on_speed_pressed(1.0)
@@ -98,7 +147,10 @@ func bind_runner(runner: SimulationRunner) -> void:
 		runner.characters_updated.connect(_on_characters_updated)
 	if not runner.event_emitted.is_connected(_on_event_emitted):
 		runner.event_emitted.connect(_on_event_emitted)
+	if not runner.directives_updated.is_connected(_on_directives_updated):
+		runner.directives_updated.connect(_on_directives_updated)
 
+	_populate_directives_options()
 	_populate_character_options()
 	_refresh_display()
 
@@ -117,6 +169,8 @@ func _unbind_runner(runner: SimulationRunner) -> void:
 		runner.characters_updated.disconnect(_on_characters_updated)
 	if runner.event_emitted.is_connected(_on_event_emitted):
 		runner.event_emitted.disconnect(_on_event_emitted)
+	if runner.directives_updated.is_connected(_on_directives_updated):
+		runner.directives_updated.disconnect(_on_directives_updated)
 
 func _refresh_display() -> void:
 	_ensure_node_references()
@@ -249,3 +303,126 @@ func _style_speed_button(btn: Button, is_active: bool) -> void:
 		btn.modulate = Color(0.4, 0.85, 1.0, 1.0)
 	else:
 		btn.modulate = Color(0.75, 0.75, 0.75, 0.85)
+
+func _populate_directives_options() -> void:
+	_ensure_node_references()
+	if want_option_button == null or never_option_button == null or believe_option_button == null:
+		return
+
+	want_option_button.clear()
+	var wants = DirectiveCatalogClass.get_available_wants()
+	for i in range(wants.size()):
+		var w = wants[i]
+		want_option_button.add_item(w.name, i)
+		want_option_button.set_item_metadata(i, w.id)
+
+	never_option_button.clear()
+	var nevers = DirectiveCatalogClass.get_available_nevers()
+	for i in range(nevers.size()):
+		var n = nevers[i]
+		never_option_button.add_item(n.name, i)
+		never_option_button.set_item_metadata(i, n.id)
+
+	believe_option_button.clear()
+	var beliefs = DirectiveCatalogClass.get_available_beliefs()
+	for i in range(beliefs.size()):
+		var b = beliefs[i]
+		believe_option_button.add_item(b.name, i)
+		believe_option_button.set_item_metadata(i, b.id)
+
+	_sync_directives_ui_from_runner()
+
+func _sync_directives_ui_from_runner() -> void:
+	if simulation_runner == null:
+		return
+	var current_directives = simulation_runner.get_player_directive_ids()
+	var want_id = current_directives.get("want", "learn_room_407")
+	var never_id = current_directives.get("never", "never_steal")
+	var belief_id = current_directives.get("believe", "everyone_hiding_something")
+
+	_select_option_by_metadata(want_option_button, want_id)
+	_select_option_by_metadata(never_option_button, never_id)
+	_select_option_by_metadata(believe_option_button, belief_id)
+
+	_update_directive_descriptions()
+
+func _select_option_by_metadata(btn: OptionButton, meta_id: String) -> void:
+	if btn == null:
+		return
+	for i in range(btn.item_count):
+		if btn.get_item_metadata(i) == meta_id:
+			btn.selected = i
+			return
+
+func _update_directive_descriptions() -> void:
+	if want_option_button != null and want_desc_label != null:
+		var idx = want_option_button.selected
+		if idx >= 0:
+			var wid = want_option_button.get_item_metadata(idx)
+			var w = DirectiveCatalogClass.get_want(wid)
+			if w != null:
+				want_desc_label.text = "%s: %s" % [w.title, w.description]
+	if never_option_button != null and never_desc_label != null:
+		var idx = never_option_button.selected
+		if idx >= 0:
+			var nid = never_option_button.get_item_metadata(idx)
+			var n = DirectiveCatalogClass.get_never(nid)
+			if n != null:
+				never_desc_label.text = "%s: %s" % [n.title, n.description]
+	if believe_option_button != null and believe_desc_label != null:
+		var idx = believe_option_button.selected
+		if idx >= 0:
+			var bid = believe_option_button.get_item_metadata(idx)
+			var b = DirectiveCatalogClass.get_belief(bid)
+			if b != null:
+				believe_desc_label.text = "%s: %s" % [b.title, b.description]
+
+func _on_directives_pressed() -> void:
+	_ensure_node_references()
+	if setup_panel != null:
+		setup_panel.visible = not setup_panel.visible
+		if setup_panel.visible:
+			_sync_directives_ui_from_runner()
+
+func _on_close_setup_pressed() -> void:
+	_ensure_node_references()
+	if setup_panel != null:
+		setup_panel.visible = false
+
+func _on_want_selected(_index: int) -> void:
+	_update_directive_descriptions()
+
+func _on_never_selected(_index: int) -> void:
+	_update_directive_descriptions()
+
+func _on_believe_selected(_index: int) -> void:
+	_update_directive_descriptions()
+
+func _on_start_simulation_pressed() -> void:
+	_ensure_node_references()
+	if simulation_runner != null:
+		var want_id = ""
+		var never_id = ""
+		var belief_id = ""
+		if want_option_button != null and want_option_button.selected >= 0:
+			want_id = want_option_button.get_item_metadata(want_option_button.selected)
+		if never_option_button != null and never_option_button.selected >= 0:
+			never_id = never_option_button.get_item_metadata(never_option_button.selected)
+		if believe_option_button != null and believe_option_button.selected >= 0:
+			belief_id = believe_option_button.get_item_metadata(believe_option_button.selected)
+
+		simulation_runner.set_player_directives(want_id, never_id, belief_id)
+		var clock = simulation_runner.get_clock()
+		if clock != null and clock.is_paused():
+			simulation_runner.set_paused(false)
+
+	if setup_panel != null:
+		setup_panel.visible = false
+
+func _on_directives_updated(_want_id: String, _never_id: String, _belief_id: String) -> void:
+	_sync_directives_ui_from_runner()
+	if debug_panel != null and debug_panel.visible and character_option_button != null:
+		var selected_idx = character_option_button.selected
+		if selected_idx >= 0:
+			var selected_id = character_option_button.get_item_metadata(selected_idx)
+			_show_character_debug(selected_id)
