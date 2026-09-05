@@ -138,6 +138,16 @@ func get_debug_summary() -> String:
 		lines.append("  %s: %.2f" % [e, emotions.get(e, 0.0)])
 
 	lines.append("\n[Inventory]: %s" % str(inventory))
-	lines.append("[Goals]: %s" % str(goals))
+	lines.append("[Goals]:")
+	if goals.is_empty():
+		lines.append("  (None)")
+	else:
+		for i in range(goals.size()):
+			var g = goals[i]
+			var prefix = "Primary" if i == 0 else "Secondary"
+			if g is Dictionary:
+				lines.append("  * [%s] %s (%s)" % [prefix, g.get("description", g.get("id", "Goal")), g.get("id", "")])
+			else:
+				lines.append("  * [%s] %s" % [prefix, str(g)])
 	return "\n".join(lines)
 
