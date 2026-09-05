@@ -1,0 +1,121 @@
+[gd_scene load_steps=2 format=3 uid="uid://cb5p12v4r177q"]
+
+[ext_resource type="Script" path="res://scripts/ui/main_ui.gd" id="1_mainui"]
+
+[node name="MainUI" type="CanvasLayer"]
+script = ExtResource("1_mainui")
+
+[node name="RootControl" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBarMargin" type="MarginContainer" parent="RootControl"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 76.0
+grow_horizontal = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+
+[node name="TopBarPanel" type="PanelContainer" parent="RootControl/TopBarMargin"]
+layout_mode = 2
+
+[node name="InnerMargin" type="MarginContainer" parent="RootControl/TopBarMargin/TopBarPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 8
+
+[node name="HBox" type="HBoxContainer" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="ProjectTitle" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.93, 0.98, 1)
+theme_override_font_sizes/font_size = 18
+text = "ONE ORDER"
+
+[node name="Sep1" type="VSeparator" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+
+[node name="TimeSection" type="HBoxContainer" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TimePrefix" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/TimeSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Time:"
+
+[node name="TimeLabel" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/TimeSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 20
+text = "18:00:00"
+
+[node name="StatusLabel" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/TimeSection"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.9, 0.4, 1)
+theme_override_font_sizes/font_size = 13
+text = "[RUNNING]"
+
+[node name="Spacer" type="Control" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SeedLabel" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.82, 0.95, 1)
+theme_override_font_sizes/font_size = 15
+text = "Seed: 12345"
+
+[node name="Sep2" type="VSeparator" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+
+[node name="ControlsHBox" type="HBoxContainer" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="PauseButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/ControlsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 32)
+layout_mode = 2
+text = "Pause"
+
+[node name="SpeedLabel" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/ControlsHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.7, 0.8, 1)
+theme_override_font_sizes/font_size = 14
+text = "Speed:"
+
+[node name="Speed1xButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/ControlsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 32)
+layout_mode = 2
+text = "1x"
+
+[node name="Speed2xButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/ControlsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 32)
+layout_mode = 2
+text = "2x"
+
+[node name="Speed4xButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox/ControlsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 32)
+layout_mode = 2
+text = "4x"
+

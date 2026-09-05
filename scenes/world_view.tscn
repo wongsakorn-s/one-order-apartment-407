@@ -1,0 +1,46 @@
+[gd_scene load_steps=2 format=3 uid="uid://cr0d6fxgj4b8q"]
+
+[ext_resource type="Script" path="res://scripts/world/world_view.gd" id="1_world"]
+
+[node name="WorldView" type="Node2D"]
+script = ExtResource("1_world")
+
+[node name="PlaceholderUI" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 1280.0
+offset_bottom = 720.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CenterContainer" type="CenterContainer" parent="PlaceholderUI"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PlaceholderUI/CenterContainer"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="TitleLabel" type="Label" parent="PlaceholderUI/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.78, 0.85, 0.95, 1)
+theme_override_font_sizes/font_size = 22
+text = "APARTMENT 407 — WORLD VIEW"
+horizontal_alignment = 1
+
+[node name="SubtitleLabel" type="Label" parent="PlaceholderUI/CenterContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
+theme_override_font_sizes/font_size = 14
+text = "Simulation Visualization Layer (Task-001 Foundation)"
+horizontal_alignment = 1
+

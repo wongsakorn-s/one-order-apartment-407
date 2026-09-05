@@ -1,0 +1,18 @@
+[gd_scene load_steps=5 format=3 uid="uid://dfghjk1234567"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/simulation/simulation_runner.gd" id="2_runner"]
+[ext_resource type="PackedScene" path="res://scenes/world_view.tscn" id="3_world"]
+[ext_resource type="PackedScene" path="res://scenes/main_ui.tscn" id="4_ui"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="SimulationRunner" type="Node" parent="."]
+script = ExtResource("2_runner")
+initial_seed = 12345
+
+[node name="WorldView" parent="." instance=ExtResource("3_world")]
+
+[node name="MainUI" parent="." instance=ExtResource("4_ui")]
+
