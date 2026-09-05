@@ -37,6 +37,8 @@ var name: String = ""
 var is_protagonist: bool = false
 var current_location: String = ""
 
+const BaseActionClass = preload("res://scripts/actions/base_action.gd")
+
 var personality: Dictionary = {}
 var needs: Dictionary = {}
 var emotions: Dictionary = {}
@@ -45,6 +47,7 @@ var goals: Array = []
 var memories: Array = []
 var beliefs: Dictionary = {}
 var relationships: Dictionary = {}
+var active_action: BaseAction = null
 var current_action: Dictionary = {
 	"id": "idle",
 	"description": "Idle"
@@ -99,6 +102,42 @@ func set_emotion(emotion_name: String, value: float) -> void:
 
 func get_emotion(emotion_name: String) -> float:
 	return emotions.get(emotion_name, 0.0)
+
+## Assign an active action to the character.
+func set_active_action(action: BaseAction) -> void:
+	active_action = action
+	if action != null:
+		current_action = action.to_dict()
+	else:
+		current_action = {
+			"id": "idle",
+			"description": "Idle"
+		}
+
+## Cancel the currently active action if running or pending.
+func cancel_current_action(reason: String = "Cancelled") -> void:
+	if active_action != null:
+		active_action.cancel(reason)
+		current_action = active_action.to_dict()
+		active_action = null
+
+## Advance character's active action by delta_sim_seconds.
+func tick_action(delta_sim_seconds: float, context: Dictionary) -> Variant:
+	if active_action == null:
+		return null
+
+	active_action.tick(delta_sim_seconds, context)
+	current_action = active_action.to_dict()
+
+	if active_action.status == BaseActionClass.Status.COMPLETED:
+		var completed_action = active_action
+		active_action = null
+		return completed_action
+	elif active_action.status == BaseActionClass.Status.FAILED or active_action.status == BaseActionClass.Status.CANCELLED:
+		active_action = null
+		return null
+
+	return null
 
 ## Export full state as a structured dictionary for serialization and debug inspection.
 func to_dict() -> Dictionary:

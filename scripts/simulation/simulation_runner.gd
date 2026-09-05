@@ -10,9 +10,12 @@ signal speed_multiplier_changed(multiplier: float)
 signal simulation_completed()
 signal seed_changed(current_seed: int)
 signal characters_updated()
+signal event_emitted(event_dict: Dictionary)
 
 const CharacterStateClass = preload("res://scripts/characters/character_state.gd")
 const NPCGeneratorClass = preload("res://scripts/generation/npc_generator.gd")
+const SimulationEventClass = preload("res://scripts/events/simulation_event.gd")
+const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 
 @export var initial_seed: int = 12345
 
@@ -20,6 +23,7 @@ var clock: SimulationClock
 var random_service: RandomService
 var world_graph: WorldGraph
 var _characters: Dictionary = {}
+var _events: Array[Dictionary] = []
 
 func _ready() -> void:
 	_init_simulation()
@@ -85,8 +89,69 @@ func spawn_initial_characters() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if clock != null:
+	if clock != null and not clock.is_paused() and not clock.is_finished():
+		var sim_delta: float = delta * clock.BASE_SIM_SECONDS_PER_REAL_SECOND * clock.get_speed_multiplier()
 		clock.advance(delta)
+		_tick_simulation(sim_delta)
+
+func get_simulation_context() -> Dictionary:
+	return {
+		"characters": _characters,
+		"world_graph": world_graph,
+		"sim_time": clock.get_current_sim_seconds() if clock != null else 0.0,
+		"rng": random_service
+	}
+
+func execute_character_action(char_id: String, action: BaseAction) -> bool:
+	var character = get_character(char_id)
+	if character == null or action == null:
+		return false
+
+	var context = get_simulation_context()
+	if action.start(context):
+		character.set_active_action(action)
+		characters_updated.emit()
+		return true
+	return false
+
+func cancel_character_action(char_id: String, reason: String = "Cancelled") -> void:
+	var character = get_character(char_id)
+	if character != null:
+		character.cancel_current_action(reason)
+		characters_updated.emit()
+
+func _tick_simulation(sim_delta: float) -> void:
+	var context = get_simulation_context()
+	var any_state_changed: bool = false
+
+	for c in _characters.values():
+		var char_state: CharacterState = c as CharacterState
+		if char_state.active_action != null:
+			var completed_action = char_state.tick_action(sim_delta, context)
+			any_state_changed = true
+			if completed_action != null:
+				var evt = completed_action._create_completion_event(context)
+				_record_event(evt)
+
+	if any_state_changed:
+		characters_updated.emit()
+
+func _record_event(evt: SimulationEvent) -> void:
+	if evt == null:
+		return
+	var evt_dict = evt.to_dict()
+	_events.append(evt_dict)
+	if _events.size() > 200:
+		_events.pop_front()
+	event_emitted.emit(evt_dict)
+
+func get_events() -> Array[Dictionary]:
+	return _events
+
+func get_recent_events(count: int = 20) -> Array[Dictionary]:
+	if _events.size() <= count:
+		return _events.duplicate()
+	return _events.slice(_events.size() - count, _events.size())
 
 func toggle_pause() -> void:
 	if clock != null:
@@ -152,6 +217,7 @@ func reset_simulation(new_seed: int = -1) -> void:
 	if clock != null:
 		clock.reset()
 
+	_events.clear()
 	world_graph = WorldGraph.create_default_apartment()
 	spawn_initial_characters()
 	seed_changed.emit(get_seed())

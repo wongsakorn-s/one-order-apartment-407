@@ -96,6 +96,8 @@ func bind_runner(runner: SimulationRunner) -> void:
 		runner.seed_changed.connect(_on_seed_changed)
 	if not runner.characters_updated.is_connected(_on_characters_updated):
 		runner.characters_updated.connect(_on_characters_updated)
+	if not runner.event_emitted.is_connected(_on_event_emitted):
+		runner.event_emitted.connect(_on_event_emitted)
 
 	_populate_character_options()
 	_refresh_display()
@@ -113,6 +115,8 @@ func _unbind_runner(runner: SimulationRunner) -> void:
 		runner.seed_changed.disconnect(_on_seed_changed)
 	if runner.characters_updated.is_connected(_on_characters_updated):
 		runner.characters_updated.disconnect(_on_characters_updated)
+	if runner.event_emitted.is_connected(_on_event_emitted):
+		runner.event_emitted.disconnect(_on_event_emitted)
 
 func _refresh_display() -> void:
 	_ensure_node_references()
@@ -146,6 +150,13 @@ func _populate_character_options() -> void:
 
 func _on_characters_updated() -> void:
 	_populate_character_options()
+
+func _on_event_emitted(_event_dict: Dictionary) -> void:
+	if debug_panel != null and debug_panel.visible and character_option_button != null:
+		var selected_idx = character_option_button.selected
+		if selected_idx >= 0:
+			var selected_id = character_option_button.get_item_metadata(selected_idx)
+			_show_character_debug(selected_id)
 
 func _on_inspect_pressed() -> void:
 	_ensure_node_references()

@@ -47,6 +47,13 @@ func add_edge(from_id: String, to_id: String, bidirectional: bool = true) -> boo
 		loc_b.add_neighbor(from_id)
 	return true
 
+## Check if two locations are directly connected neighbors.
+func are_locations_connected(from_id: String, to_id: String) -> bool:
+	var loc = get_location(from_id)
+	if loc == null:
+		return false
+	return loc.has_neighbor(to_id)
+
 ## Calculate a valid shortest route between two locations using Breadth-First Search (BFS).
 ## Returns an ordered array of location IDs from from_id to to_id inclusive (e.g. ["room_101", "hallway_1", ...]).
 ## If from_id == to_id, returns [from_id].

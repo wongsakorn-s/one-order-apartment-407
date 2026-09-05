@@ -10,10 +10,11 @@ const TestMainSceneScript = preload("res://tests/test_main_scene.gd")
 const TestWorldGraphScript = preload("res://tests/test_world_graph.gd")
 const TestCharacterStateScript = preload("res://tests/test_character_state.gd")
 const TestNPCGeneratorScript = preload("res://tests/test_npc_generator.gd")
+const TestActionsScript = preload("res://tests/test_actions.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001, 002, 003, 004")
+	print(" RUNNING AUTOMATED TESTS: TASK-001, 002, 003, 004, 005")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -78,6 +79,17 @@ func _init() -> void:
 	print("\n[SUITE] TestNPCGenerator:")
 	var npc_results: Array[Dictionary] = TestNPCGeneratorScript.run_all()
 	for res in npc_results:
+		if res["passed"]:
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res["name"], res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 7. Action System Tests (TASK-005)
+	print("\n[SUITE] TestActions:")
+	var action_results: Array[Dictionary] = TestActionsScript.run_all()
+	for res in action_results:
 		if res["passed"]:
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1
