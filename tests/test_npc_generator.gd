@@ -252,3 +252,4 @@ static func _test_no_major_gameplay_events_generated() -> Dictionary:
 			return {"name": "test_no_major_gameplay_events_generated", "passed": false, "error": "NPC spawned with pre-baked memories: %s" % str(c.memories)}
 
 	return {"name": "test_no_major_gameplay_events_generated", "passed": true}
+

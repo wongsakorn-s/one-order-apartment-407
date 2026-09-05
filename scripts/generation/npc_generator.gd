@@ -446,3 +446,4 @@ static func print_generated_roster(seed_num: int, characters: Array[CharacterSta
 		print("   Goals: %s" % (", ".join(goal_descs) if not goal_descs.is_empty() else "None"))
 		print("   Inventory: %s" % str(c.inventory))
 	print("------------------------------------------------------------")
+
