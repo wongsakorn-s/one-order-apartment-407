@@ -75,6 +75,12 @@ text = "[RUNNING]"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="InspectButton" type="Button" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 32)
+layout_mode = 2
+text = "Inspect NPCs"
+
 [node name="SeedLabel" type="Label" parent="RootControl/TopBarMargin/TopBarPanel/InnerMargin/HBox"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -119,3 +125,58 @@ custom_minimum_size = Vector2(40, 32)
 layout_mode = 2
 text = "4x"
 
+[node name="DebugPanel" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = 80.0
+offset_right = -20.0
+offset_bottom = -20.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="RootControl/DebugPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="VBox" type="VBoxContainer" parent="RootControl/DebugPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HeaderHBox" type="HBoxContainer" parent="RootControl/DebugPanel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="RootControl/DebugPanel/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Character Inspector"
+
+[node name="Spacer" type="Control" parent="RootControl/DebugPanel/Margin/VBox/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="CloseInspectButton" type="Button" parent="RootControl/DebugPanel/Margin/VBox/HeaderHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(24, 24)
+layout_mode = 2
+text = "X"
+
+[node name="CharacterOptionButton" type="OptionButton" parent="RootControl/DebugPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="DebugText" type="RichTextLabel" parent="RootControl/DebugPanel/Margin/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 11
+bbcode_enabled = true
+text = "Select a character to inspect."

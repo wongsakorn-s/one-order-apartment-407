@@ -8,10 +8,11 @@ const TestRandomServiceScript = preload("res://tests/test_random_service.gd")
 const TestSimulationClockScript = preload("res://tests/test_simulation_clock.gd")
 const TestMainSceneScript = preload("res://tests/test_main_scene.gd")
 const TestWorldGraphScript = preload("res://tests/test_world_graph.gd")
+const TestCharacterStateScript = preload("res://tests/test_character_state.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 & TASK-002")
+	print(" RUNNING AUTOMATED TESTS: TASK-001, 002, 003")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -54,6 +55,17 @@ func _init() -> void:
 	print("\n[SUITE] TestWorldGraph:")
 	var world_results: Array[Dictionary] = TestWorldGraphScript.run_all()
 	for res in world_results:
+		if res["passed"]:
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res["name"], res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 5. Character State Tests (TASK-003)
+	print("\n[SUITE] TestCharacterState:")
+	var char_results: Array[Dictionary] = TestCharacterStateScript.run_all()
+	for res in char_results:
 		if res["passed"]:
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1

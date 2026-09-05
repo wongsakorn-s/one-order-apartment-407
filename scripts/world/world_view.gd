@@ -1,10 +1,12 @@
 class_name WorldView
 extends Node2D
 
-## WorldView visualizes the 13 Apartment 407 locations as top-down boxes and connections.
+## WorldView visualizes the 13 Apartment 407 locations as top-down boxes, connections,
+## and characters as simple colored circles with names.
 ## Strictly presentation: contains zero simulation state or decision logic.
 
 const WorldGraphClass = preload("res://scripts/world/world_graph.gd")
+const CharacterStateClass = preload("res://scripts/characters/character_state.gd")
 
 # 2D Screen layout for presentation only (Logical simulation does NOT use these coordinates)
 const ROOM_RECTS: Dictionary = {
@@ -33,6 +35,7 @@ const ROOM_RECTS: Dictionary = {
 }
 
 var _world_graph: WorldGraph
+var _characters: Array[CharacterState] = []
 
 func _ready() -> void:
 	if _world_graph == null:
@@ -40,9 +43,15 @@ func _ready() -> void:
 		_world_graph = WorldGraphClass.create_default_apartment()
 	queue_redraw()
 
-## Inject the WorldGraph from SimulationRunner
-func setup(graph: WorldGraph) -> void:
+## Inject the WorldGraph and optional characters from SimulationRunner
+func setup(graph: WorldGraph, characters: Array[CharacterState] = []) -> void:
 	_world_graph = graph
+	_characters = characters
+	queue_redraw()
+
+## Update characters rendered in the world view
+func set_characters(characters: Array[CharacterState]) -> void:
+	_characters = characters
 	queue_redraw()
 
 func _draw() -> void:
@@ -108,7 +117,6 @@ func _draw() -> void:
 		var tag_str: String = ""
 
 		if loc_id == "room_407":
-			# Special styling for Room 407
 			fill_color = Color(0.28, 0.18, 0.08, 0.95)
 			border_color = Color(0.95, 0.7, 0.2, 1.0)
 			title_color = Color(1.0, 0.85, 0.3)
@@ -139,7 +147,6 @@ func _draw() -> void:
 			title_color = Color(0.8, 0.9, 0.95)
 			tag_str = "[UTILITY]"
 		else:
-			# Standard residential room
 			fill_color = Color(0.13, 0.17, 0.25, 0.95)
 			border_color = Color(0.3, 0.45, 0.6, 0.85)
 			title_color = Color(0.88, 0.92, 0.98)
@@ -152,9 +159,9 @@ func _draw() -> void:
 
 		# Draw Text Titles (with font null guard)
 		if font != null:
-			var text_pos_y: float = rect.position.y + 28.0
+			var text_pos_y: float = rect.position.y + 24.0
 			if loc_id == "stairwell":
-				text_pos_y = rect.position.y + rect.size.y * 0.5 - 10.0
+				text_pos_y = rect.position.y + 28.0
 
 			draw_string(
 				font,
@@ -162,14 +169,14 @@ func _draw() -> void:
 				display_title,
 				HORIZONTAL_ALIGNMENT_LEFT,
 				rect.size.x - 20.0,
-				14,
+				13,
 				title_color
 			)
 
 			if not tag_str.is_empty():
 				draw_string(
 					font,
-					Vector2(rect.position.x + 10.0, text_pos_y + 18.0),
+					Vector2(rect.position.x + 10.0, text_pos_y + 15.0),
 					tag_str,
 					HORIZONTAL_ALIGNMENT_LEFT,
 					rect.size.x - 20.0,
@@ -177,8 +184,73 @@ func _draw() -> void:
 					Color(border_color.r, border_color.g, border_color.b, 0.85)
 				)
 
-	# 6. Floor Level Indicators on the left (with font null guard)
+	# 6. Draw Characters as simple circles with names inside their rooms
+	_draw_characters(font)
+
+	# 7. Floor Level Indicators on the left (with font null guard)
 	if font != null:
 		draw_string(font, Vector2(60, 255), "FLOOR 2", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
 		draw_string(font, Vector2(60, 430), "FLOOR 1", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
 		draw_string(font, Vector2(60, 605), "GROUND", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
+
+func _draw_characters(font: Font) -> void:
+	# Group characters by location
+	var by_location: Dictionary = {}
+	for c in _characters:
+		var loc_id: String = c.current_location
+		if not by_location.has(loc_id):
+			by_location[loc_id] = []
+		by_location[loc_id].append(c)
+
+	for loc_id in by_location.keys():
+		if not ROOM_RECTS.has(loc_id):
+			continue
+		var rect: Rect2 = ROOM_RECTS[loc_id]
+		var chars_in_room: Array = by_location[loc_id]
+
+		var circle_radius: float = 10.0
+		var start_x: float = rect.position.x + 24.0
+		var base_y: float = rect.position.y + rect.size.y - 20.0
+
+		# For narrow corridors, adjust position
+		if loc_id.begins_with("hallway"):
+			base_y = rect.position.y + 24.0
+
+		for idx in range(chars_in_room.size()):
+			var c: CharacterState = chars_in_room[idx] as CharacterState
+			var circle_pos: Vector2 = Vector2(start_x + idx * 56.0, base_y)
+
+			# Color coding for characters
+			var body_color: Color
+			var outline_color: Color
+
+			if c.is_protagonist:
+				body_color = Color(0.2, 0.85, 1.0, 1.0) # Bright cyan for protagonist
+				outline_color = Color(1.0, 0.9, 0.3, 1.0) # Gold ring
+			else:
+				# Deterministic pleasant colors for NPCs
+				var hue: float = fmod(abs(c.name.hash()) * 0.13, 1.0)
+				body_color = Color.from_hsv(hue, 0.55, 0.9)
+				outline_color = Color(0.1, 0.15, 0.25, 1.0)
+
+			# Draw character circle
+			draw_circle(circle_pos, circle_radius, body_color)
+			draw_arc(circle_pos, circle_radius, 0.0, TAU, 24, outline_color, 2.0 if c.is_protagonist else 1.2)
+
+			# Draw protagonist indicator badge
+			if c.is_protagonist:
+				draw_circle(circle_pos, 3.0, Color.WHITE)
+
+			# Draw character name
+			if font != null:
+				var label_text: String = "%s (P)" % c.name if c.is_protagonist else c.name
+				var label_pos: Vector2 = Vector2(circle_pos.x - 24.0, circle_pos.y - 12.0)
+				draw_string(
+					font,
+					label_pos,
+					label_text,
+					HORIZONTAL_ALIGNMENT_CENTER,
+					48.0,
+					10,
+					Color(0.95, 0.98, 1.0, 0.95)
+				)
