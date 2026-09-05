@@ -9,6 +9,8 @@ extends Node
 @onready var main_ui: MainUI = $MainUI
 
 func _ready() -> void:
-	if simulation_runner != null and main_ui != null:
-		main_ui.bind_runner(simulation_runner)
-
+	if simulation_runner != null:
+		if main_ui != null:
+			main_ui.bind_runner(simulation_runner)
+		if world_view != null:
+			world_view.setup(simulation_runner.get_world_graph())

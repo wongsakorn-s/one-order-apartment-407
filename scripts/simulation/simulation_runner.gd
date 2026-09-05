@@ -1,7 +1,7 @@
 class_name SimulationRunner
 extends Node
 
-## SimulationRunner coordinates the core simulation loop, clock, and random service.
+## SimulationRunner coordinates the core simulation loop, clock, random service, and world graph.
 ## Ticks during physics process to ensure deterministic time step advancement decoupled from FPS.
 
 signal time_updated(sim_time_seconds: float, formatted_time: String)
@@ -13,6 +13,7 @@ signal simulation_completed()
 
 var clock: SimulationClock
 var random_service: RandomService
+var world_graph: WorldGraph
 
 func _ready() -> void:
 	_init_simulation()
@@ -20,6 +21,7 @@ func _ready() -> void:
 func _init_simulation() -> void:
 	random_service = RandomService.new(initial_seed)
 	clock = SimulationClock.new()
+	world_graph = WorldGraph.create_default_apartment()
 
 	clock.time_advanced.connect(_on_clock_time_advanced)
 	clock.pause_toggled.connect(_on_clock_pause_toggled)
@@ -53,6 +55,9 @@ func get_clock() -> SimulationClock:
 func get_random_service() -> RandomService:
 	return random_service
 
+func get_world_graph() -> WorldGraph:
+	return world_graph
+
 func get_seed() -> int:
 	if random_service != null:
 		return random_service.get_seed()
@@ -70,6 +75,8 @@ func reset_simulation(new_seed: int = -1) -> void:
 	if clock != null:
 		clock.reset()
 
+	world_graph = WorldGraph.create_default_apartment()
+
 func _on_clock_time_advanced(sim_time: float, formatted_time: String) -> void:
 	time_updated.emit(sim_time, formatted_time)
 
@@ -81,4 +88,3 @@ func _on_clock_speed_changed(multiplier: float) -> void:
 
 func _on_clock_simulation_completed() -> void:
 	simulation_completed.emit()
-

@@ -5,42 +5,44 @@
 [node name="WorldView" type="Node2D"]
 script = ExtResource("1_world")
 
-[node name="PlaceholderUI" type="Control" parent="."]
+[node name="FooterInfo" type="Control" parent="."]
 layout_mode = 3
-anchors_preset = 15
+anchors_preset = 12
+anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
+offset_top = 672.0
 offset_right = 1280.0
-offset_bottom = 720.0
+offset_bottom = 712.0
 grow_horizontal = 2
-grow_vertical = 2
+grow_vertical = 0
 mouse_filter = 2
 
-[node name="CenterContainer" type="CenterContainer" parent="PlaceholderUI"]
+[node name="FooterMargin" type="MarginContainer" parent="FooterInfo"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_right = 24
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PlaceholderUI/CenterContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="FooterInfo/FooterMargin"]
 layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 8
 
-[node name="TitleLabel" type="Label" parent="PlaceholderUI/CenterContainer/VBoxContainer"]
+[node name="WorldStatus" type="Label" parent="FooterInfo/FooterMargin/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.78, 0.85, 0.95, 1)
-theme_override_font_sizes/font_size = 22
-text = "APARTMENT 407 — WORLD VIEW"
-horizontal_alignment = 1
+theme_override_colors/font_color = Color(0.45, 0.55, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "APARTMENT 407 — LOGICAL WORLD MODEL (13 LOCATIONS CONNECTED)"
 
-[node name="SubtitleLabel" type="Label" parent="PlaceholderUI/CenterContainer/VBoxContainer"]
+[node name="Spacer" type="Control" parent="FooterInfo/FooterMargin/HBoxContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1)
-theme_override_font_sizes/font_size = 14
-text = "Simulation Visualization Layer (Task-001 Foundation)"
-horizontal_alignment = 1
+size_flags_horizontal = 3
 
+[node name="Legend" type="Label" parent="FooterInfo/FooterMargin/HBoxContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.55, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Top-down Logical Graph View"
