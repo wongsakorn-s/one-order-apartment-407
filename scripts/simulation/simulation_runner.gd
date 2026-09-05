@@ -16,12 +16,14 @@ const CharacterStateClass = preload("res://scripts/characters/character_state.gd
 const NPCGeneratorClass = preload("res://scripts/generation/npc_generator.gd")
 const SimulationEventClass = preload("res://scripts/events/simulation_event.gd")
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
+const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
 
 @export var initial_seed: int = 12345
 
 var clock: SimulationClock
 var random_service: RandomService
 var world_graph: WorldGraph
+var utility_ai: UtilityAI
 var _characters: Dictionary = {}
 var _events: Array[Dictionary] = []
 
@@ -32,6 +34,7 @@ func _init_simulation() -> void:
 	random_service = RandomService.new(initial_seed)
 	clock = SimulationClock.new()
 	world_graph = WorldGraph.create_default_apartment()
+	utility_ai = UtilityAIClass.new()
 
 	clock.time_advanced.connect(_on_clock_time_advanced)
 	clock.pause_toggled.connect(_on_clock_pause_toggled)
@@ -133,6 +136,19 @@ func _tick_simulation(sim_delta: float) -> void:
 				var evt = completed_action._create_completion_event(context)
 				_record_event(evt)
 
+	# Autonomous Utility AI decision cycle for idle characters
+	if utility_ai != null:
+		context = get_simulation_context()
+		for c in _characters.values():
+			var char_state: CharacterState = c as CharacterState
+			if char_state.active_action == null:
+				var decision: UtilityDecision = utility_ai.decide_action(char_state, context)
+				if decision != null and decision.action != null:
+					char_state.last_decision = decision.to_dict()
+					if decision.action.start(context):
+						char_state.set_active_action(decision.action)
+						any_state_changed = true
+
 	if any_state_changed:
 		characters_updated.emit()
 
@@ -219,8 +235,12 @@ func reset_simulation(new_seed: int = -1) -> void:
 
 	_events.clear()
 	world_graph = WorldGraph.create_default_apartment()
+	utility_ai = UtilityAIClass.new()
 	spawn_initial_characters()
 	seed_changed.emit(get_seed())
+
+func get_utility_ai() -> UtilityAI:
+	return utility_ai
 
 func _on_clock_time_advanced(sim_time: float, formatted_time: String) -> void:
 	time_updated.emit(sim_time, formatted_time)

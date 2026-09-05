@@ -54,6 +54,13 @@ func are_locations_connected(from_id: String, to_id: String) -> bool:
 		return false
 	return loc.has_neighbor(to_id)
 
+## Get array of neighbor location IDs for a given location.
+func get_neighbors(location_id: String) -> Array[String]:
+	var loc = get_location(location_id)
+	if loc == null:
+		return []
+	return loc.neighbors.duplicate()
+
 ## Calculate a valid shortest route between two locations using Breadth-First Search (BFS).
 ## Returns an ordered array of location IDs from from_id to to_id inclusive (e.g. ["room_101", "hallway_1", ...]).
 ## If from_id == to_id, returns [from_id].
@@ -114,6 +121,10 @@ func get_route_distance(from_id: String, to_id: String) -> int:
 	if route.is_empty():
 		return -1
 	return route.size() - 1
+
+## Alias for get_route_distance.
+func get_distance(from_id: String, to_id: String) -> int:
+	return get_route_distance(from_id, to_id)
 
 ## Factory to create the standard 13-location Apartment 407 world model.
 static func create_default_apartment() -> WorldGraph:

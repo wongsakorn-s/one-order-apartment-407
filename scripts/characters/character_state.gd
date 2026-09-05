@@ -52,6 +52,7 @@ var current_action: Dictionary = {
 	"id": "idle",
 	"description": "Idle"
 }
+var last_decision: Dictionary = {}
 
 func _init(
 	p_id: String = "",
@@ -154,7 +155,8 @@ func to_dict() -> Dictionary:
 		"memories": memories.duplicate(),
 		"beliefs": beliefs.duplicate(),
 		"relationships": relationships.duplicate(),
-		"current_action": current_action.duplicate()
+		"current_action": current_action.duplicate(),
+		"last_decision": last_decision.duplicate(true)
 	}
 
 ## Return human-readable multiline debug representation of character state.
@@ -163,6 +165,19 @@ func get_debug_summary() -> String:
 	lines.append("=== Character [%s: %s] %s ===" % [id, name, "(PROTAGONIST)" if is_protagonist else "(NPC)"])
 	lines.append("Location: %s" % current_location)
 	lines.append("Action: %s (%s)" % [current_action.get("id", "none"), current_action.get("description", "")])
+
+	if not last_decision.is_empty():
+		lines.append("\n[Utility Decision]")
+		lines.append("  Chosen: %s (Score: %.2f)" % [last_decision.get("action_name", last_decision.get("action_id", "")), float(last_decision.get("score", 0.0))])
+		lines.append("  Why: %s" % last_decision.get("explanation", ""))
+		var candidates_list = last_decision.get("candidates", [])
+		if not candidates_list.is_empty():
+			lines.append("  Top Candidates:")
+			var top_slice = candidates_list.slice(0, mini(candidates_list.size(), 5))
+			for c in top_slice:
+				var candidate_name: String = c.get("action_name", c.get("action_id", ""))
+				var target_str: String = " -> %s" % c.get("target_id", "") if not str(c.get("target_id", "")).is_empty() else ""
+				lines.append("    * %s%s: %.2f" % [candidate_name, target_str, float(c.get("score", 0.0))])
 
 	lines.append("\n[Personality]")
 	for t in PERSONALITY_TRAITS:

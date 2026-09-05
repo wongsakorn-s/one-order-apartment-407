@@ -11,10 +11,11 @@ const TestWorldGraphScript = preload("res://tests/test_world_graph.gd")
 const TestCharacterStateScript = preload("res://tests/test_character_state.gd")
 const TestNPCGeneratorScript = preload("res://tests/test_npc_generator.gd")
 const TestActionsScript = preload("res://tests/test_actions.gd")
+const TestUtilityAIScript = preload("res://tests/test_utility_ai.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001, 002, 003, 004, 005")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-006")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -95,6 +96,17 @@ func _init() -> void:
 			total_passed += 1
 		else:
 			print("  [FAIL] %s - %s" % [res["name"], res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 8. Utility AI Decision Tests (TASK-006)
+	print("\n[SUITE] TestUtilityAI:")
+	var utility_results: Array[Dictionary] = TestUtilityAIScript.run_all()
+	for res in utility_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
 			total_failed += 1
 
 	print("\n========================================")
