@@ -4,9 +4,9 @@
   "files.eol": "\n",
   "git.autorefresh": true,
   "git.autofetch": false,
+  "git.autoStash": false,
   "files.watcherExclude": {
-    "**/.git/objects/**": true,
-    "**/.git/subtree-cache/**": true,
+    "**/.git/**": true,
     "**/.godot/**": true
   }
 }
