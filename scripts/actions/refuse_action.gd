@@ -36,6 +36,10 @@ func _apply_effects(context: Dictionary) -> void:
 	if target != null:
 		# Refusal causes slight frustration or stress in the target
 		target.set_emotion("stress", target.get_emotion("stress") + 0.05)
+		# Directional relationship updates:
+		# Target toward Actor: trust -0.15, suspicion +0.10
+		target.modify_relationship(actor_id, "trust", -0.15)
+		target.modify_relationship(actor_id, "suspicion", 0.10)
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

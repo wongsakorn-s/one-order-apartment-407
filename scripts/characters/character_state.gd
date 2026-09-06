@@ -38,6 +38,7 @@ var is_protagonist: bool = false
 var current_location: String = ""
 
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
+const RelationshipClass = preload("res://scripts/characters/relationship.gd")
 
 var personality: Dictionary = {}
 var needs: Dictionary = {}
@@ -116,6 +117,27 @@ func set_emotion(emotion_name: String, value: float) -> void:
 func get_emotion(emotion_name: String) -> float:
 	return emotions.get(emotion_name, 0.0)
 
+## Relationship helper methods
+func get_relationship(other_id: String) -> Relationship:
+	if not relationships.has(other_id):
+		relationships[other_id] = RelationshipClass.new(other_id)
+	elif relationships[other_id] is Dictionary:
+		var rel = RelationshipClass.new(other_id)
+		rel.from_dict(relationships[other_id])
+		relationships[other_id] = rel
+	return relationships[other_id]
+
+func set_relationship(other_id: String, rel: Relationship) -> void:
+	relationships[other_id] = rel
+
+func modify_relationship(other_id: String, metric: String, delta: float) -> void:
+	var rel: Relationship = get_relationship(other_id)
+	rel.modify(metric, delta)
+
+func get_relationship_value(other_id: String, metric: String) -> float:
+	var rel: Relationship = get_relationship(other_id)
+	return rel.get_value(metric)
+
 ## Assign an active action to the character.
 func set_active_action(action: BaseAction) -> void:
 	active_action = action
@@ -154,6 +176,16 @@ func tick_action(delta_sim_seconds: float, context: Dictionary) -> Variant:
 
 ## Export full state as a structured dictionary for serialization and debug inspection.
 func to_dict() -> Dictionary:
+	var serialized_relationships: Dictionary = {}
+	for target_id in relationships:
+		var rel = relationships[target_id]
+		if rel is RelationshipClass or (rel != null and rel.has_method("to_dict")):
+			serialized_relationships[target_id] = rel.to_dict()
+		elif rel is Dictionary:
+			serialized_relationships[target_id] = rel.duplicate()
+		else:
+			serialized_relationships[target_id] = rel
+
 	return {
 		"id": id,
 		"name": name,
@@ -166,7 +198,7 @@ func to_dict() -> Dictionary:
 		"goals": goals.duplicate(),
 		"memories": memories.duplicate(),
 		"beliefs": beliefs.duplicate(),
-		"relationships": relationships.duplicate(),
+		"relationships": serialized_relationships,
 		"current_action": current_action.duplicate(),
 		"last_decision": last_decision.duplicate(true),
 		"directives": {
@@ -216,6 +248,15 @@ func get_debug_summary() -> String:
 	lines.append("\n[Emotions]")
 	for e in EMOTIONS:
 		lines.append("  %s: %.2f" % [e, emotions.get(e, 0.0)])
+
+	if not relationships.is_empty():
+		lines.append("\n[Relationships]")
+		for target_id in relationships:
+			var rel = relationships[target_id]
+			if rel is RelationshipClass or (rel != null and rel.has_method("get_summary")):
+				lines.append("  -> %s: %s" % [target_id, rel.get_summary()])
+			elif rel is Dictionary:
+				lines.append("  -> %s: %s" % [target_id, str(rel)])
 
 	lines.append("\n[Inventory]: %s" % str(inventory))
 	lines.append("[Goals]:")

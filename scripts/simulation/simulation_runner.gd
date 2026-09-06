@@ -19,6 +19,7 @@ const SimulationEventClass = preload("res://scripts/events/simulation_event.gd")
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
+const RelationshipGeneratorClass = preload("res://scripts/generation/relationship_generator.gd")
 
 @export var initial_seed: int = 12345
 
@@ -90,6 +91,10 @@ func spawn_initial_characters() -> void:
 	var npcs = generator.generate_npcs(random_service, world_graph, protagonist.id, protagonist.name)
 	for npc in npcs:
 		_characters[npc.id] = npc
+
+	# 3. Generate initial directional relationships between all characters
+	var rel_gen = RelationshipGeneratorClass.new()
+	rel_gen.generate_initial_relationships(random_service, get_all_characters())
 
 	# Print generated roster for debug visibility
 	NPCGeneratorClass.print_generated_roster(get_seed(), get_all_characters())

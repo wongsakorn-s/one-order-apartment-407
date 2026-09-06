@@ -50,6 +50,10 @@ func _apply_effects(context: Dictionary) -> void:
 		var source_char = characters.get(source_character_id, null)
 		if source_char != null:
 			source_char.inventory.erase(target_id)
+			# Taking an item from a character harms trust and respect, increases suspicion
+			source_char.modify_relationship(actor_id, "trust", -0.30)
+			source_char.modify_relationship(actor_id, "suspicion", 0.25)
+			source_char.modify_relationship(actor_id, "respect", -0.20)
 
 	if not target_id in actor.inventory:
 		actor.inventory.append(target_id)

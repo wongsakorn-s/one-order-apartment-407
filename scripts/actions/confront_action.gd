@@ -42,6 +42,17 @@ func _apply_effects(context: Dictionary) -> void:
 		target.set_emotion("stress", target.get_emotion("stress") + 0.15)
 		target.set_need("safety", target.get_need("safety") - 0.10)
 
+		# Target toward Actor: fear +0.20, suspicion +0.15, trust -0.20, respect change
+		target.modify_relationship(actor_id, "fear", 0.20)
+		target.modify_relationship(actor_id, "suspicion", 0.15)
+		target.modify_relationship(actor_id, "trust", -0.20)
+		var respect_delta: float = 0.10 if target.get_personality_trait("fear") >= target.get_personality_trait("aggression") else -0.10
+		target.modify_relationship(actor_id, "respect", respect_delta)
+
+		# Actor toward Target: suspicion +0.10, trust -0.10
+		actor.modify_relationship(target_id, "suspicion", 0.10)
+		actor.modify_relationship(target_id, "trust", -0.10)
+
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})
 	var actor = characters.get(actor_id, null)

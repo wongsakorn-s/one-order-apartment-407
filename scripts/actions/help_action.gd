@@ -38,6 +38,12 @@ func _apply_effects(context: Dictionary) -> void:
 	if actor != null and target != null:
 		target.set_emotion("stress", target.get_emotion("stress") - 0.10)
 		actor.set_need("social", actor.get_need("social") + 0.05)
+		# Directional relationship updates:
+		# Target toward Actor: trust +0.15, debt +0.20
+		target.modify_relationship(actor_id, "trust", 0.15)
+		target.modify_relationship(actor_id, "debt", 0.20)
+		# Actor toward Target: trust +0.05
+		actor.modify_relationship(target_id, "trust", 0.05)
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

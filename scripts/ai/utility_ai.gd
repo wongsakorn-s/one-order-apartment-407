@@ -193,13 +193,25 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			need_mod = (1.0 - actor.get_need("safety")) * 2.0
 			goal_relevance = _evaluate_flee_goal(actor, characters)
 
+			# Fear of co-located characters triggers fleeing
+			var max_co_fear: float = 0.0
+			for other_id in characters.keys():
+				if other_id != actor.id:
+					var other = characters[other_id] as CharacterState
+					if other != null and other.current_location == actor.current_location:
+						var f: float = _get_relationship_value(actor, other_id, "fear")
+						if f > max_co_fear:
+							max_co_fear = f
+			if max_co_fear > 0.1:
+				relationship_mod = max_co_fear * 2.5
+
 		"talk":
 			base_score = 0.8
 			var sociability: float = actor.get_personality_trait("sociability")
 			var empathy: float = actor.get_personality_trait("empathy")
 			personality_mod = (sociability - 0.5) * 2.2 + (empathy - 0.5) * 1.0
 			need_mod = (1.0 - actor.get_need("social")) * 2.2 + (1.0 - actor.get_need("information")) * 1.0
-			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.2
+			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5 - _get_relationship_value(actor, action.target_id, "suspicion") * 0.8 - _get_relationship_value(actor, action.target_id, "fear") * 0.6 + _get_relationship_value(actor, action.target_id, "attraction") * 0.5
 			emotional_mod = actor.get_emotion("happiness") * 0.8 - actor.get_emotion("anger") * 1.5
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["meet_character", "repair_relationship"])
 
@@ -209,7 +221,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			var greed: float = actor.get_personality_trait("greed")
 			personality_mod = (empathy - 0.5) * 3.2 - (greed - 0.5) * 1.6
 			emotional_mod = actor.get_emotion("happiness") * 1.2 - actor.get_emotion("anger") * 2.5
-			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.8 + _get_relationship_value(actor, action.target_id, "debt") * 1.5
+			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.8 + _get_relationship_value(actor, action.target_id, "debt") * 2.0
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
 
 		"confront":
@@ -219,7 +231,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			var fear: float = actor.get_personality_trait("fear")
 			personality_mod = (aggression - 0.5) * 3.5 - (empathy - 0.5) * 2.0 - (fear - 0.5) * 1.2
 			emotional_mod = actor.get_emotion("anger") * 3.0 + actor.get_emotion("stress") * 0.8
-			relationship_mod = _get_relationship_value(actor, action.target_id, "suspicion") * 2.0 - _get_relationship_value(actor, action.target_id, "trust") * 1.5
+			relationship_mod = _get_relationship_value(actor, action.target_id, "suspicion") * 2.0 - _get_relationship_value(actor, action.target_id, "trust") * 1.5 - _get_relationship_value(actor, action.target_id, "fear") * 1.5
 			risk = 0.8
 
 		"refuse":
@@ -228,7 +240,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			var empathy: float = actor.get_personality_trait("empathy")
 			personality_mod = (aggression - 0.5) * 1.6 - (empathy - 0.5) * 1.8
 			emotional_mod = actor.get_emotion("anger") * 1.5
-			relationship_mod = - _get_relationship_value(actor, action.target_id, "trust") * 1.0
+			relationship_mod = - _get_relationship_value(actor, action.target_id, "trust") * 1.2 + _get_relationship_value(actor, action.target_id, "suspicion") * 0.8 - _get_relationship_value(actor, action.target_id, "fear") * 1.0
 
 		"take_item":
 			base_score = 0.2
@@ -236,6 +248,9 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			var honesty: float = actor.get_personality_trait("honesty")
 			personality_mod = (greed - 0.5) * 2.8 - (honesty - 0.5) * 2.0
 			need_mod = (1.0 - actor.get_need("money")) * 1.5
+			var source_char_id: String = action.source_character_id if "source_character_id" in action else ""
+			if not source_char_id.is_empty():
+				relationship_mod = - _get_relationship_value(actor, source_char_id, "respect") * 1.0 - _get_relationship_value(actor, source_char_id, "trust") * 0.8
 			goal_relevance = _evaluate_goal_match(actor, "retrieve_item", "") + _evaluate_goal_match(actor, "earn_money", "")
 
 		"give_item":
@@ -243,7 +258,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			var empathy: float = actor.get_personality_trait("empathy")
 			var greed: float = actor.get_personality_trait("greed")
 			personality_mod = (empathy - 0.5) * 2.5 - (greed - 0.5) * 2.5
-			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5
+			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5 + _get_relationship_value(actor, action.target_id, "debt") * 1.2 + _get_relationship_value(actor, action.target_id, "attraction") * 0.8
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
 
 	# Player Directives evaluation (Applied exclusively to the protagonist)
@@ -377,10 +392,16 @@ func _evaluate_flee_goal(actor: CharacterState, characters: Dictionary) -> float
 	return score
 
 func _get_relationship_value(actor: CharacterState, other_id: String, field: String) -> float:
+	if actor == null or other_id.is_empty():
+		return 0.0
+	if actor.has_method("get_relationship_value"):
+		return actor.get_relationship_value(other_id, field)
 	if actor.relationships.has(other_id):
 		var rel = actor.relationships[other_id]
 		if rel is Dictionary:
 			return float(rel.get(field, 0.0))
+		elif rel != null and rel.has_method("get_value"):
+			return float(rel.get_value(field))
 	return 0.0
 
 func _format_explanation(action: BaseAction, total: float, reasons: Dictionary) -> String:
@@ -390,6 +411,6 @@ func _format_explanation(action: BaseAction, total: float, reasons: Dictionary) 
 	var parts: Array[String] = []
 	for k in reasons.keys():
 		var v: float = float(reasons[k])
-		if absf(v) >= 0.15:
+		if absf(v) >= 0.05:
 			parts.append("%s: %+.2f" % [k, v])
 	return "%s (Score: %.2f) [%s]" % [desc, total, ", ".join(parts)]

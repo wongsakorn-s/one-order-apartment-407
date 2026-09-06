@@ -13,10 +13,11 @@ const TestNPCGeneratorScript = preload("res://tests/test_npc_generator.gd")
 const TestActionsScript = preload("res://tests/test_actions.gd")
 const TestUtilityAIScript = preload("res://tests/test_utility_ai.gd")
 const TestPlayerDirectivesScript = preload("res://tests/test_player_directives.gd")
+const TestRelationshipsScript = preload("res://tests/test_relationships.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-007")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-008")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -114,6 +115,17 @@ func _init() -> void:
 	print("\n[SUITE] TestPlayerDirectives:")
 	var directives_results: Array[Dictionary] = TestPlayerDirectivesScript.run_all()
 	for res in directives_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 10. Relationships Tests (TASK-008)
+	print("\n[SUITE] TestRelationships:")
+	var rel_results: Array[Dictionary] = TestRelationshipsScript.run_all()
+	for res in rel_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1
