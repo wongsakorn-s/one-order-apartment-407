@@ -50,9 +50,26 @@ func _apply_effects(context: Dictionary) -> void:
 			state_changes["stress_delta"] = 0.05
 			state_changes["fear_delta"] = 0.05
 
+		# TASK-015: any character investigating a location may independently
+		# discover and pick up world-truth items left there (e.g. hidden cash,
+		# stolen goods, abandoned belongings), regardless of who placed them.
+		var world_graph: WorldGraph = context.get("world_graph", null)
+		if world_graph != null and world_graph.has_location(target_id):
+			var loc: Location = world_graph.get_location(target_id)
+			if loc != null and not loc.items.is_empty():
+				var found_item: String = loc.items[0]
+				loc.remove_item(found_item)
+				if not found_item in actor.inventory:
+					actor.inventory.append(found_item)
+				actor.set_belief(target_id, "contained_item", found_item, 1.0, "self", float(context.get("sim_time", 0.0)))
+				metadata["found_item"] = found_item
+				state_changes["item_found"] = {"item": found_item, "location": target_id, "by": actor_id}
+
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})
 	var actor = characters.get(actor_id, null)
 	var actor_name: String = actor.name if actor != null else actor_id
+	if metadata.has("found_item"):
+		return "%s investigated %s and found %s" % [actor_name, target_id.capitalize(), metadata["found_item"]]
 	return "%s investigated %s" % [actor_name, target_id.capitalize()]
 

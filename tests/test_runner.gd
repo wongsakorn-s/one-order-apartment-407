@@ -20,10 +20,11 @@ const TestSecretsScript = preload("res://tests/test_secrets.gd")
 const TestSocialInteractionsScript = preload("res://tests/test_social_interactions.gd")
 const TestCausalEventsScript = preload("res://tests/test_causal_events.gd")
 const TestObserverUIScript = preload("res://tests/test_observer_ui.gd")
+const TestRoom407Script = preload("res://tests/test_room_407.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-014")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-015")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -198,6 +199,17 @@ func _init() -> void:
 	print("\n[SUITE] TestObserverUI:")
 	var observer_ui_results: Array[Dictionary] = TestObserverUIScript.run_all()
 	for res in observer_ui_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 17. Room 407 Mystery Catalyst Tests (TASK-015)
+	print("\n[SUITE] TestRoom407:")
+	var room_407_results: Array[Dictionary] = TestRoom407Script.run_all()
+	for res in room_407_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1

@@ -10,6 +10,11 @@ var neighbors: Array[String] = []
 var capacity: int = 10
 var tags: Array[String] = []
 
+## World-truth items physically present at this location (TASK-015), independent
+## of any character's inventory. Any character who investigates the location can
+## discover and pick one up, regardless of who originally placed it there.
+var items: Array[String] = []
+
 func _init(
 	p_id: String = "",
 	p_display_name: String = "",
@@ -46,4 +51,16 @@ func has_tag(tag: String) -> bool:
 func add_tag(tag: String) -> void:
 	if not tag.is_empty() and not tag in tags:
 		tags.append(tag)
+
+## Place an item at this location (world truth, not owned by any character).
+func add_item(item_name: String) -> void:
+	if not item_name.is_empty() and not item_name in items:
+		items.append(item_name)
+
+## Remove an item from this location, e.g. once someone picks it up.
+func remove_item(item_name: String) -> void:
+	items.erase(item_name)
+
+func has_item(item_name: String) -> bool:
+	return item_name in items
 

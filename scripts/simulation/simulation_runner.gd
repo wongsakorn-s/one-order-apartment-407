@@ -21,6 +21,7 @@ const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
 const RelationshipGeneratorClass = preload("res://scripts/generation/relationship_generator.gd")
 const SecretGeneratorClass = preload("res://scripts/generation/secret_generator.gd")
+const Room407GeneratorClass = preload("res://scripts/generation/room_407_generator.gd")
 const MemoryClass = preload("res://scripts/characters/memory.gd")
 
 @export var initial_seed: int = 12345
@@ -35,6 +36,7 @@ var active_belief_id: String = "everyone_hiding_something"
 var _characters: Dictionary = {}
 var _events: Array[Dictionary] = []
 var _secrets: Array[Dictionary] = []
+var _room_407_scenario: Dictionary = {}
 var _event_id_counter: int = 0
 
 func _ready() -> void:
@@ -109,9 +111,18 @@ func spawn_initial_characters() -> void:
 	var secret_gen = SecretGeneratorClass.new()
 	_secrets = secret_gen.generate_secrets(random_service, get_all_characters())
 
+	# 6. Select at most one Room 407 mystery catalyst scenario (TASK-015),
+	# continuing the same deterministic RNG stream. Kept separate from the
+	# general secrets list so TASK-011's "3-5 secrets per run" stays exact;
+	# it is still secret-shaped so it reuses the same debug/test surface.
+	var room_407_gen = Room407GeneratorClass.new()
+	_room_407_scenario = room_407_gen.generate_scenario(random_service, get_all_characters(), world_graph)
+
 	# Print generated roster and secrets for debug visibility
 	NPCGeneratorClass.print_generated_roster(get_seed(), get_all_characters())
 	SecretGeneratorClass.print_generated_secrets(get_seed(), _secrets)
+	if not _room_407_scenario.is_empty():
+		print("[ROOM 407] %s" % _room_407_scenario.get("description", ""))
 
 	characters_updated.emit()
 
@@ -378,6 +389,9 @@ func _distribute_event_knowledge(evt: SimulationEvent) -> void:
 
 func get_secrets() -> Array[Dictionary]:
 	return _secrets
+
+func get_room_407_scenario() -> Dictionary:
+	return _room_407_scenario
 
 func get_events() -> Array[Dictionary]:
 	return _events
