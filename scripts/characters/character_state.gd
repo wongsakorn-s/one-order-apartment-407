@@ -58,6 +58,7 @@ var current_action: Dictionary = {
 	"id": "idle",
 	"description": "Idle"
 }
+var recent_actions: Array[Dictionary] = []
 var last_decision: Dictionary = {}
 var directives: Dictionary = {}
 
@@ -322,6 +323,7 @@ func tick_action(delta_sim_seconds: float, context: Dictionary) -> Variant:
 
 	if active_action.status == BaseActionClass.Status.COMPLETED:
 		var completed_action = active_action
+		record_completed_action(completed_action.to_dict())
 		active_action = null
 		return completed_action
 	elif active_action.status == BaseActionClass.Status.FAILED or active_action.status == BaseActionClass.Status.CANCELLED:
@@ -329,6 +331,12 @@ func tick_action(delta_sim_seconds: float, context: Dictionary) -> Variant:
 		return null
 
 	return null
+
+## Record an action into recent action history window (capped at 5).
+func record_completed_action(action_dict: Dictionary) -> void:
+	recent_actions.push_front(action_dict.duplicate())
+	if recent_actions.size() > 5:
+		recent_actions.pop_back()
 
 ## Export full state as a structured dictionary for serialization and debug inspection.
 func to_dict() -> Dictionary:
@@ -376,6 +384,7 @@ func to_dict() -> Dictionary:
 		"beliefs": serialized_beliefs,
 		"relationships": serialized_relationships,
 		"current_action": current_action.duplicate(),
+		"recent_actions": recent_actions.duplicate(true),
 		"last_decision": last_decision.duplicate(true),
 		"directives": {
 			"want": directives["want"].to_dict() if directives.get("want") != null else null,

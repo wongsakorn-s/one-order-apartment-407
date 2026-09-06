@@ -28,26 +28,41 @@ func calculate_utility(actor: CharacterState, action: BaseAction, context: Dicti
 
 	match id:
 		"learn_room_407":
+			var already_searched: bool = false
+			if actor.current_location == "room_407":
+				for rec in actor.recent_actions:
+					if rec.get("id", "") == "investigate" and (rec.get("target_id", "") == "room_407" or rec.get("target_id", "") == ""):
+						already_searched = true
+						break
+
 			if action.id == "investigate" and (action.target_id == "room_407" or actor.current_location == "room_407"):
+				if already_searched:
+					return 1.2
 				return 4.0
 			elif action.id == "move_to" and world_graph != null:
+				if actor.current_location == "room_407" and already_searched:
+					# Motivate leaving Room 407 to explore or question witnesses
+					return 2.5
 				var dist_cur: int = world_graph.get_distance(actor.current_location, "room_407")
 				var dist_next: int = world_graph.get_distance(action.target_id, "room_407")
 				if dist_next < dist_cur and dist_cur >= 0:
 					return 3.8
-			elif action.id == "talk":
-				return 1.5
+			elif action.id in ["talk", "ask_question"]:
+				return 1.8
 
 		"earn_money":
-			# Focus on acquiring resources, items, or trade
+			# Focus on acquiring resources, items, trade, or asking around
 			if action.id == "take_item":
 				return 3.5
-			elif action.id == "talk":
-				return 1.2
+			elif action.id == "investigate":
+				# Searching rooms for valuables or lost items
+				return 2.2
+			elif action.id in ["talk", "ask_question"]:
+				return 2.0
 			elif action.id == "move_to":
 				# Move towards communal areas or storage where items might be
-				if action.target_id in ["laundry_room", "lobby"]:
-					return 1.5
+				if action.target_id in ["laundry_room", "lobby", "room_407"]:
+					return 2.2
 
 		"make_friend":
 			# Focus on cooperative social interactions

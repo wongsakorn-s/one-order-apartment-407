@@ -150,16 +150,40 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 	if rng != null:
 		controlled_noise = (rng.rand_float() - 0.5) * 0.3
 
-	# TASK-019: variety pressure. Repeating the exact same action type the
-	# actor just completed is deliberately discouraged (a deterministic,
-	# explainable "I just did that" bias, not RNG) so a strong early lead for
-	# one action (e.g. talk/help feeding off ever-rising trust/debt) doesn't
-	# snowball into that action dominating the whole run. Idle/rest are exempt
-	# since repeated rest/idling is expected physiological behavior, not a
-	# repetitive-story problem.
+	# PLAYTEST-001 Fix 1: Multi-step history variety pressure and target fatigue.
+	# Discourages consecutive repetitions, alternating ping-pong loops (e.g. talk <-> help),
+	# and target fatigue so characters circulate instead of stagnating in one room.
+	# Idle is exempt. Rest is only exempt when character genuinely needs rest (< 0.85).
 	var repetition_mod: float = 0.0
-	if not (action.id in ["idle", "rest"]) and actor.current_action.get("id", "") == action.id:
-		repetition_mod = -2.0
+	var is_rest_tired: bool = (action.id == "rest" and actor.get_need("rest") < 0.85)
+	var is_exempt: bool = (action.id == "idle" or is_rest_tired)
+
+	if not is_exempt:
+		var prev_action_id: String = actor.current_action.get("id", "")
+		if prev_action_id == action.id:
+			repetition_mod -= 2.0
+
+		var recent_type_count: int = 0
+		var recent_target_count: int = 0
+		var history_limit: int = mini(actor.recent_actions.size(), 4)
+		for i in range(history_limit):
+			var rec: Dictionary = actor.recent_actions[i]
+			if rec.get("id", "") == action.id:
+				recent_type_count += 1
+			if not action.target_id.is_empty() and rec.get("target_id", "") == action.target_id:
+				recent_target_count += 1
+
+		# Penalty for alternating / repeated action types within sliding window
+		if recent_type_count >= 2:
+			repetition_mod -= 1.8
+		elif recent_type_count == 1 and prev_action_id != action.id:
+			repetition_mod -= 0.9
+
+		# Target fatigue: discourages spamming the exact same co-located character
+		if recent_target_count >= 2:
+			repetition_mod -= 1.2
+		elif recent_target_count == 1:
+			repetition_mod -= 0.5
 
 	# Action-specific evaluation
 	match action.id:
@@ -170,21 +194,39 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 
 		"rest":
 			base_score = 0.4
+			var rest_need: float = actor.get_need("rest")
 			# Strong need urgency when rest need is low
-			need_mod = (1.0 - actor.get_need("rest")) * 3.0
+			need_mod = (1.0 - rest_need) * 3.0
+			# PLAYTEST-001 Fix 3: Rest satiation penalty when already well-rested
+			if rest_need >= 0.85:
+				need_mod -= (rest_need - 0.85) * 8.0
 			emotional_mod = actor.get_emotion("stress") * 1.2
 			personality_mod = (actor.get_personality_trait("fear") - 0.5) * 0.6
 			goal_relevance = _evaluate_goal_match(actor, "rest", "")
 
 		"investigate":
-			# TASK-019: raised base/personality weight -- investigate was
-			# badly under-represented (10% of NPC actions) next to talk/help.
+			# TASK-019: raised base/personality weight
 			base_score = 0.65
 			var curiosity: float = actor.get_personality_trait("curiosity")
 			var fear: float = actor.get_personality_trait("fear")
 			personality_mod = (curiosity - 0.5) * 3.0 - (fear - 0.5) * 0.8
 			need_mod = (1.0 - actor.get_need("information")) * 1.8
 			emotional_mod = actor.get_emotion("fear") * -1.0
+
+			# PLAYTEST-001 Fix 2: Diminishing returns on repeatedly investigating the same location
+			var inv_count: int = 0
+			var hist_limit: int = mini(actor.recent_actions.size(), 4)
+			for i in range(hist_limit):
+				var rec: Dictionary = actor.recent_actions[i]
+				if rec.get("id", "") == "investigate" and (rec.get("target_id", "") == action.target_id or rec.get("target_id", "") == actor.current_location):
+					inv_count += 1
+			if inv_count >= 2:
+				need_mod -= 3.5
+			elif inv_count == 1:
+				need_mod -= 2.0
+
+			if actor.get_need("information") > 0.85:
+				need_mod -= 1.2
 
 			# Target room matching
 			if action.target_id == "room_407":
@@ -473,6 +515,20 @@ func _evaluate_movement_goal(actor: CharacterState, neighbor_id: String, world_g
 					move_score -= 3.5
 				elif actor.current_location == avoid_loc:
 					move_score += 2.5
+
+	# PLAYTEST-001 Fix 3: Subtle circulation / wanderlust incentive for idle or solitary characters
+	if move_score == 0.0:
+		var co_located_count: int = 0
+		for other_id in characters.keys():
+			if other_id != actor.id:
+				var oc = characters[other_id] as CharacterState
+				if oc != null and oc.current_location == actor.current_location:
+					co_located_count += 1
+
+		# When alone and rested, encourage moving out into communal circulation areas
+		if co_located_count == 0 and actor.get_need("rest") >= 0.70:
+			if neighbor_id in ["lobby", "hallway_1", "hallway_2", "laundry_room", "stairwell"]:
+				move_score += 0.65
 
 	return move_score
 
