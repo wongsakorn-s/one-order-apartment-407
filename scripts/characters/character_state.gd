@@ -48,6 +48,7 @@ var personality: Dictionary = {}
 var needs: Dictionary = {}
 var emotions: Dictionary = {}
 var inventory: Array = []
+var hidden_items: Array = []
 var goals: Array = []
 var memories: Array = []
 var beliefs: Dictionary = {}
@@ -141,6 +142,26 @@ func modify_relationship(other_id: String, metric: String, delta: float) -> void
 func get_relationship_value(other_id: String, metric: String) -> float:
 	var rel: Relationship = get_relationship(other_id)
 	return rel.get_value(metric)
+
+## Hidden item management methods (TASK-011: Secrets & Run Setup).
+## Hidden items are physically possessed but withheld from the visible inventory,
+## so other characters cannot discover or take them through normal interaction.
+func hide_item(item_name: String) -> void:
+	if item_name.is_empty():
+		return
+	if item_name in inventory:
+		inventory.erase(item_name)
+	if not item_name in hidden_items:
+		hidden_items.append(item_name)
+
+func reveal_item(item_name: String) -> void:
+	if item_name in hidden_items:
+		hidden_items.erase(item_name)
+	if not item_name in inventory:
+		inventory.append(item_name)
+
+func has_hidden_item(item_name: String) -> bool:
+	return item_name in hidden_items
 
 ## Memory management methods
 func add_memory(memory: Memory) -> void:
@@ -349,6 +370,7 @@ func to_dict() -> Dictionary:
 		"needs": needs.duplicate(),
 		"emotions": emotions.duplicate(),
 		"inventory": inventory.duplicate(),
+		"hidden_items": hidden_items.duplicate(),
 		"goals": goals.duplicate(),
 		"memories": serialized_memories,
 		"beliefs": serialized_beliefs,
@@ -435,6 +457,8 @@ func get_debug_summary() -> String:
 			lines.append("  * %s" % all_beliefs[i].get_summary())
 
 	lines.append("\n[Inventory]: %s" % str(inventory))
+	if not hidden_items.is_empty():
+		lines.append("[Hidden Items]: %s" % str(hidden_items))
 	lines.append("[Goals]:")
 	if goals.is_empty():
 		lines.append("  (None)")

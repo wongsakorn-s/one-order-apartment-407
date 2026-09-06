@@ -150,8 +150,11 @@ static func test_shared_information_records_source() -> Dictionary:
 	speaker.current_location = "room_102"
 	listener.current_location = "room_102"
 
-	# Give speaker a high-confidence belief that listener does NOT have
+	# Give speaker a high-confidence belief that listener does NOT have.
+	# Clear speaker's other beliefs first so no unrelated fact (e.g. a TASK-011
+	# generated secret) outranks the specific fact this test verifies sharing for.
 	listener.beliefs.erase("room_407:status")
+	speaker.beliefs.clear()
 	speaker.set_belief("room_407", "status", "strange_scratching", 0.95, "self", 100.0)
 
 	# Establish trust from listener to speaker
@@ -221,7 +224,9 @@ static func test_trust_affects_confidence_in_received_information() -> Dictionar
 		rel_low.set_value("trust", 0.20)
 		rel_low.set_value("suspicion", 0.80)
 
-	# Speaker shares fact
+	# Speaker shares fact. Clear other beliefs first so no unrelated fact (e.g. a
+	# TASK-011 generated secret) outranks the specific fact under test.
+	speaker.beliefs.clear()
 	speaker.set_belief("rumor", "conspiracy", "landlord_scheme", 1.0, "self", 10.0)
 
 	var talk1 = TalkActionClass.new(speaker.id, listener_high_trust.id, 2.0)

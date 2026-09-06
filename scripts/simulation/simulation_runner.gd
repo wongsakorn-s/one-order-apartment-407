@@ -20,6 +20,7 @@ const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
 const RelationshipGeneratorClass = preload("res://scripts/generation/relationship_generator.gd")
+const SecretGeneratorClass = preload("res://scripts/generation/secret_generator.gd")
 const MemoryClass = preload("res://scripts/characters/memory.gd")
 
 @export var initial_seed: int = 12345
@@ -33,6 +34,7 @@ var active_never_id: String = "never_steal"
 var active_belief_id: String = "everyone_hiding_something"
 var _characters: Dictionary = {}
 var _events: Array[Dictionary] = []
+var _secrets: Array[Dictionary] = []
 
 func _ready() -> void:
 	_init_simulation()
@@ -100,8 +102,15 @@ func spawn_initial_characters() -> void:
 	# 4. Seed initial subjective knowledge and beliefs
 	_seed_initial_knowledge()
 
-	# Print generated roster for debug visibility
+	# 5. Generate run secrets (TASK-011): mutates inventory, hidden items,
+	# relationships, goals, and beliefs consistently, continuing the same
+	# deterministic RNG stream used by NPC and relationship generation.
+	var secret_gen = SecretGeneratorClass.new()
+	_secrets = secret_gen.generate_secrets(random_service, get_all_characters())
+
+	# Print generated roster and secrets for debug visibility
 	NPCGeneratorClass.print_generated_roster(get_seed(), get_all_characters())
+	SecretGeneratorClass.print_generated_secrets(get_seed(), _secrets)
 
 	characters_updated.emit()
 
@@ -355,6 +364,9 @@ func _distribute_event_knowledge(evt: SimulationEvent) -> void:
 				character.set_belief(evt.actor_id, "hostile_towards", evt.target_id, 1.0, "self", evt.timestamp)
 			"help":
 				character.set_belief(evt.actor_id, "helped", evt.target_id, 1.0, "self", evt.timestamp)
+
+func get_secrets() -> Array[Dictionary]:
+	return _secrets
 
 func get_events() -> Array[Dictionary]:
 	return _events

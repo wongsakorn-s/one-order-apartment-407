@@ -16,10 +16,11 @@ const TestPlayerDirectivesScript = preload("res://tests/test_player_directives.g
 const TestRelationshipsScript = preload("res://tests/test_relationships.gd")
 const TestMemoriesScript = preload("res://tests/test_memories.gd")
 const TestKnowledgeBeliefsScript = preload("res://tests/test_knowledge_beliefs.gd")
+const TestSecretsScript = preload("res://tests/test_secrets.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-010")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-011")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -150,6 +151,17 @@ func _init() -> void:
 	print("\n[SUITE] TestKnowledgeBeliefs:")
 	var belief_results: Array[Dictionary] = TestKnowledgeBeliefsScript.run_all()
 	for res in belief_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 13. Secrets & Run Setup Tests (TASK-011)
+	print("\n[SUITE] TestSecrets:")
+	var secrets_results: Array[Dictionary] = TestSecretsScript.run_all()
+	for res in secrets_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1
