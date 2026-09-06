@@ -41,10 +41,15 @@ const ROOM_RECTS: Dictionary = {
 
 var _world_graph: WorldGraph
 var _characters: Array[CharacterState] = []
+var selected_character_id: String = ""
 
 ## Screen-space hit regions rebuilt every draw so clicks can be resolved
 ## back to a character ID without duplicating layout logic.
 var _character_hit_positions: Dictionary = {}
+
+func set_selected_character(char_id: String) -> void:
+	selected_character_id = char_id
+	queue_redraw()
 
 func _ready() -> void:
 	if _world_graph == null:
@@ -237,7 +242,6 @@ func _draw_characters(font: Font) -> void:
 		var rect: Rect2 = ROOM_RECTS[loc_id]
 		var chars_in_room: Array = by_location[loc_id]
 
-		var circle_radius: float = 10.0
 		var start_x: float = rect.position.x + 24.0
 		var base_y: float = rect.position.y + rect.size.y - 20.0
 
@@ -247,7 +251,9 @@ func _draw_characters(font: Font) -> void:
 
 		for idx in range(chars_in_room.size()):
 			var c: CharacterState = chars_in_room[idx] as CharacterState
-			var circle_pos: Vector2 = Vector2(start_x + idx * 56.0, base_y)
+			var circle_pos: Vector2 = Vector2(start_x + idx * 64.0, base_y)
+			var circle_radius: float = 13.0 if c.is_protagonist else 10.0
+			var is_selected: bool = (c.id == selected_character_id)
 
 			# Color coding for characters
 			var body_color: Color
@@ -255,44 +261,113 @@ func _draw_characters(font: Font) -> void:
 
 			if c.is_protagonist:
 				body_color = Color(0.2, 0.85, 1.0, 1.0) # Bright cyan for protagonist
-				outline_color = Color(1.0, 0.9, 0.3, 1.0) # Gold ring
+				outline_color = Color(1.0, 0.85, 0.25, 1.0) # Gold ring
 			else:
 				# Deterministic pleasant colors for NPCs
 				var hue: float = fmod(abs(c.name.hash()) * 0.13, 1.0)
 				body_color = Color.from_hsv(hue, 0.55, 0.9)
 				outline_color = Color(0.1, 0.15, 0.25, 1.0)
 
+			# Selection halo
+			if is_selected:
+				draw_circle(circle_pos, circle_radius + 6.0, Color(1.0, 0.9, 0.3, 0.3))
+				draw_arc(circle_pos, circle_radius + 5.0, 0.0, TAU, 32, Color(1.0, 0.95, 0.45, 0.95), 2.0)
+
 			# Draw character circle
 			draw_circle(circle_pos, circle_radius, body_color)
-			draw_arc(circle_pos, circle_radius, 0.0, TAU, 24, outline_color, 2.0 if c.is_protagonist else 1.2)
+			draw_arc(circle_pos, circle_radius, 0.0, TAU, 24, outline_color, 2.5 if c.is_protagonist else 1.2)
 
-			# Draw protagonist indicator badge
+			# Protagonist double ring & badge
 			if c.is_protagonist:
-				draw_circle(circle_pos, 3.0, Color.WHITE)
+				draw_arc(circle_pos, circle_radius + 3.5, 0.0, TAU, 28, Color(0.3, 0.9, 1.0, 0.85), 1.5)
+				draw_circle(circle_pos, 3.5, Color.WHITE)
 
 			_character_hit_positions[c.id] = circle_pos
 
 			# Draw character name and current action
 			if font != null:
-				var label_text: String = "%s (P)" % c.name if c.is_protagonist else c.name
-				var label_pos: Vector2 = Vector2(circle_pos.x - 24.0, circle_pos.y - 12.0)
+				var label_text: String = "★ YOU" if c.is_protagonist else c.name
+				var label_pos: Vector2 = Vector2(circle_pos.x - 32.0, circle_pos.y - 14.0)
+				var label_color: Color = Color(1.0, 0.95, 0.4) if c.is_protagonist else (Color(1.0, 1.0, 0.7) if is_selected else Color(0.95, 0.98, 1.0, 0.95))
 				draw_string(
 					font,
 					label_pos,
 					label_text,
 					HORIZONTAL_ALIGNMENT_CENTER,
-					48.0,
+					64.0,
 					10,
-					Color(0.95, 0.98, 1.0, 0.95)
+					label_color
 				)
 
-				var action_label: String = str(c.current_action.get("id", "idle")).capitalize()
+				var sublabel_y: float = circle_pos.y + 18.0
+				if c.is_protagonist:
+					draw_string(
+						font,
+						Vector2(circle_pos.x - 32.0, circle_pos.y - 2.0),
+						"(%s)" % c.name,
+						HORIZONTAL_ALIGNMENT_CENTER,
+						64.0,
+						8,
+						Color(0.8, 0.95, 1.0, 0.85)
+					)
+					sublabel_y = circle_pos.y + 20.0
+
+				var action_dict: Dictionary = c.current_action
+				var action_id: String = str(action_dict.get("id", "idle"))
+				var action_label: String = _format_action_label(action_id, action_dict)
+				var action_color: Color = _get_action_color(action_id)
+
 				draw_string(
 					font,
-					Vector2(circle_pos.x - 24.0, circle_pos.y + 20.0),
+					Vector2(circle_pos.x - 32.0, sublabel_y),
 					action_label,
 					HORIZONTAL_ALIGNMENT_CENTER,
-					48.0,
+					64.0,
 					8,
-					Color(0.65, 0.85, 0.95, 0.85)
+					action_color
 				)
+
+func _format_action_label(action_id: String, action_dict: Dictionary) -> String:
+	match action_id:
+		"move_to", "move":
+			var target: String = str(action_dict.get("target_location", action_dict.get("target", "")))
+			if not target.is_empty():
+				return "Going to %s" % target.replace("_", " ").capitalize()
+			return "Moving"
+		"search_room", "investigate":
+			return "Investigating"
+		"talk", "converse", "share_info":
+			return "Talking"
+		"confront", "argue":
+			return "Confronting"
+		"observe", "eavesdrop":
+			return "Watching"
+		"help":
+			return "Helping"
+		"take_item":
+			return "Taking Item"
+		"give_item":
+			return "Giving Item"
+		"rest", "sleep":
+			return "Resting"
+		"eat", "cook":
+			return "Eating"
+		"work", "read":
+			return "Busy"
+		_:
+			return action_id.replace("_", " ").capitalize()
+
+func _get_action_color(action_id: String) -> Color:
+	match action_id:
+		"investigate", "search_room", "observe", "eavesdrop":
+			return Color(1.0, 0.82, 0.35, 0.95) # Amber/Gold
+		"talk", "converse", "share_info", "help", "give_item":
+			return Color(0.4, 0.9, 0.65, 0.95) # Mint Green
+		"confront", "argue", "take_item":
+			return Color(1.0, 0.45, 0.45, 0.95) # Warning Red
+		"move_to", "move":
+			return Color(0.65, 0.85, 1.0, 0.9) # Soft Cyan/Blue
+		"rest", "sleep", "eat", "idle":
+			return Color(0.7, 0.75, 0.85, 0.75) # Dimmed Slate
+		_:
+			return Color(0.8, 0.85, 0.9, 0.85)

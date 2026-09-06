@@ -12,6 +12,10 @@ func _ready() -> void:
 	if simulation_runner != null:
 		if main_ui != null:
 			main_ui.bind_runner(simulation_runner)
+			if world_view != null:
+				main_ui.world_view = world_view
+				if not main_ui.character_selected.is_connected(world_view.set_selected_character):
+					main_ui.character_selected.connect(world_view.set_selected_character)
 			# TASK-020: on real launch, pause before the player has chosen
 			# directives and show the setup screen, matching the intended
 			# flow (choose WANT/NEVER/BELIEVE, then Start Simulation).

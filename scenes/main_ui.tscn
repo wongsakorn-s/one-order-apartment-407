@@ -208,8 +208,24 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3
-theme_override_colors/font_color = Color(0.8, 0.85, 0.6, 1)
-text = "Emotion: -"
+theme_override_colors/font_color = Color(0.9, 0.85, 0.55, 1)
+text = "Mood: -"
+
+[node name="LeftRelationshipLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.65, 0.85, 0.95, 1)
+text = "Bond: -"
+
+[node name="LeftMemoryLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.75, 0.78, 0.85, 1)
+text = "Recent: -"
 
 [node name="LeftDirectivesSeparator" type="HSeparator" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
 unique_name_in_owner = true
@@ -220,7 +236,7 @@ visible = false
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.9, 0.8, 0.3, 1)
+theme_override_colors/font_color = Color(0.95, 0.8, 0.3, 1)
 text = "PROTAGONIST DIRECTIVES"
 visible = false
 
@@ -231,6 +247,15 @@ theme_override_font_sizes/font_size = 12
 autowrap_mode = 3
 theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
 text = "WANT: -"
+visible = false
+
+[node name="LeftWantProgressLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.6, 0.95, 0.75, 1)
+text = "Progress: -"
 visible = false
 
 [node name="LeftNeverLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
@@ -289,6 +314,36 @@ size_flags_vertical = 3
 theme_override_font_sizes/normal_font_size = 12
 bbcode_enabled = true
 scroll_following = true
+text = ""
+
+[node name="NotificationBanner" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260.0
+offset_top = 84.0
+offset_right = 260.0
+offset_bottom = 126.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
+
+[node name="NotificationMargin" type="MarginContainer" parent="RootControl/NotificationBanner"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 6
+
+[node name="NotificationLabel" type="RichTextLabel" parent="RootControl/NotificationBanner/NotificationMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+autowrap_mode = 3
 text = ""
 
 [node name="DebugPanel" type="PanelContainer" parent="RootControl"]
@@ -397,11 +452,11 @@ text = "X"
 [node name="SetupSubtitle" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
+theme_override_colors/font_color = Color(0.75, 0.85, 0.95, 1)
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3
-text = "Choose one WANT. Choose one NEVER. Choose one BELIEVE.
-Once the simulation starts, you cannot control the character directly — you can only observe."
+text = "Give Alex three rules: a WANT, a NEVER, and a BELIEVE.
+Once the simulation starts, you lose direct control. Watch the consequences unfold until 06:00."
 
 [node name="HSeparator1" type="HSeparator" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
 layout_mode = 2

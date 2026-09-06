@@ -5,13 +5,18 @@ extends CanvasLayer
 ## and a Character Debug Inspector.
 ## Listens to signals from SimulationRunner and sends user commands.
 
+signal character_selected(char_id: String)
+
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
 const RunEvaluatorClass = preload("res://scripts/simulation/run_evaluator.gd")
+const MemoryClass = preload("res://scripts/characters/memory.gd")
 
 @export var simulation_runner: SimulationRunner
+@export var world_view: Node = null
 
 var _selected_character_id: String = ""
 var _feed_lines: Array[String] = []
+var _notification_timer: float = 0.0
 const MAX_FEED_LINES: int = 100
 
 @onready var time_label: Label = %TimeLabel
@@ -34,13 +39,18 @@ const MAX_FEED_LINES: int = 100
 @onready var left_action_label: Label = %LeftActionLabel
 @onready var left_goal_label: Label = %LeftGoalLabel
 @onready var left_emotion_label: Label = %LeftEmotionLabel
+@onready var left_relationship_label: Label = %LeftRelationshipLabel
+@onready var left_memory_label: Label = %LeftMemoryLabel
 @onready var left_directives_separator: HSeparator = %LeftDirectivesSeparator
 @onready var left_directives_title: Label = %LeftDirectivesTitle
 @onready var left_want_label: Label = %LeftWantLabel
+@onready var left_want_progress_label: Label = %LeftWantProgressLabel
 @onready var left_never_label: Label = %LeftNeverLabel
 @onready var left_believe_label: Label = %LeftBelieveLabel
 
 @onready var event_feed_text: RichTextLabel = %EventFeedText
+@onready var notification_banner: PanelContainer = %NotificationBanner
+@onready var notification_label: RichTextLabel = %NotificationLabel
 
 @onready var setup_panel: PanelContainer = %SetupPanel
 @onready var close_setup_button: Button = %CloseSetupButton
@@ -107,6 +117,13 @@ func _ready() -> void:
 	if simulation_runner != null:
 		bind_runner(simulation_runner)
 
+func _process(delta: float) -> void:
+	if _notification_timer > 0.0:
+		_notification_timer -= delta
+		if _notification_timer <= 0.0:
+			if notification_banner != null:
+				notification_banner.visible = false
+
 func _ensure_node_references() -> void:
 	if time_label == null:
 		time_label = get_node_or_null("%TimeLabel") as Label
@@ -146,12 +163,18 @@ func _ensure_node_references() -> void:
 		left_goal_label = get_node_or_null("%LeftGoalLabel") as Label
 	if left_emotion_label == null:
 		left_emotion_label = get_node_or_null("%LeftEmotionLabel") as Label
+	if left_relationship_label == null:
+		left_relationship_label = get_node_or_null("%LeftRelationshipLabel") as Label
+	if left_memory_label == null:
+		left_memory_label = get_node_or_null("%LeftMemoryLabel") as Label
 	if left_directives_separator == null:
 		left_directives_separator = get_node_or_null("%LeftDirectivesSeparator") as HSeparator
 	if left_directives_title == null:
 		left_directives_title = get_node_or_null("%LeftDirectivesTitle") as Label
 	if left_want_label == null:
 		left_want_label = get_node_or_null("%LeftWantLabel") as Label
+	if left_want_progress_label == null:
+		left_want_progress_label = get_node_or_null("%LeftWantProgressLabel") as Label
 	if left_never_label == null:
 		left_never_label = get_node_or_null("%LeftNeverLabel") as Label
 	if left_believe_label == null:
@@ -159,6 +182,10 @@ func _ensure_node_references() -> void:
 
 	if event_feed_text == null:
 		event_feed_text = get_node_or_null("%EventFeedText") as RichTextLabel
+	if notification_banner == null:
+		notification_banner = get_node_or_null("%NotificationBanner") as PanelContainer
+	if notification_label == null:
+		notification_label = get_node_or_null("%NotificationLabel") as RichTextLabel
 
 	if setup_panel == null:
 		setup_panel = get_node_or_null("%SetupPanel") as PanelContainer
@@ -317,12 +344,81 @@ func _append_event_feed_line(event_dict: Dictionary) -> void:
 	if description.is_empty():
 		return
 
-	_feed_lines.append("%02d:%02d %s" % [hours, minutes, description])
+	var etype: String = str(event_dict.get("event_type", "")).to_lower()
+	var actor_id: String = str(event_dict.get("actor_id", ""))
+	var target_id: String = str(event_dict.get("target_id", ""))
+
+	var protagonist_id: String = ""
+	if simulation_runner != null and simulation_runner.get_protagonist() != null:
+		protagonist_id = simulation_runner.get_protagonist().id
+
+	var is_actor_protagonist: bool = (not protagonist_id.is_empty() and actor_id == protagonist_id)
+	var is_target_protagonist: bool = (not protagonist_id.is_empty() and target_id == protagonist_id)
+
+	var actor_tag: String = ""
+	if is_actor_protagonist:
+		actor_tag = "[b][color=#40c4ff][Alex][/color][/b] "
+	elif is_target_protagonist:
+		actor_tag = "[b][color=#ffb74d][►Alex][/color][/b] "
+
+	var time_prefix: String = "[color=#7a8b9e]%02d:%02d[/color] " % [hours, minutes]
+	var formatted_body: String = description
+
+	# Categorize event severity & style
+	var is_high_priority: bool = false
+	if etype in ["confront", "argue", "flee"]:
+		formatted_body = "[b][color=#ff6b6b]⚠️ %s[/color][/b]" % description
+		is_high_priority = true
+	elif etype in ["take_item", "steal"]:
+		formatted_body = "[b][color=#ff8a65]✋ %s[/color][/b]" % description
+		is_high_priority = true
+	elif "secret" in description.to_lower() or "room 407" in description.to_lower() or etype in ["search_room", "investigate"]:
+		formatted_body = "[color=#cc88ff]🔍 %s[/color]" % description
+		if "room 407" in description.to_lower() or "secret" in description.to_lower():
+			is_high_priority = true
+	elif etype in ["help", "give_item"]:
+		formatted_body = "[color=#69f0ae]🤝 %s[/color]" % description
+	elif etype in ["talk", "converse", "share_info"]:
+		formatted_body = "[color=#80d8ff]💬 %s[/color]" % description
+	elif etype in ["move", "move_to"]:
+		formatted_body = "[color=#78909c]  %s[/color]" % description
+	else:
+		formatted_body = "[color=#cfd8dc]%s[/color]" % description
+
+	var line: String = "%s%s%s" % [time_prefix, actor_tag, formatted_body]
+	_feed_lines.append(line)
 	if _feed_lines.size() > MAX_FEED_LINES:
 		_feed_lines.remove_at(0)
 
 	event_feed_text.text = "\n".join(_feed_lines)
 	event_feed_text.scroll_to_line(event_feed_text.get_line_count() - 1)
+
+	if is_high_priority:
+		_trigger_notification(description, etype)
+
+func _trigger_notification(description: String, etype: String) -> void:
+	_ensure_node_references()
+	if notification_banner == null or notification_label == null:
+		return
+
+	var icon: String = "📢"
+	var color_hex: String = "#ffd54f"
+	if etype in ["confront", "argue", "flee"]:
+		icon = "⚠️"
+		color_hex = "#ff6b6b"
+	elif etype in ["take_item", "steal"]:
+		icon = "✋"
+		color_hex = "#ff8a65"
+	elif "room 407" in description.to_lower():
+		icon = "🗝️"
+		color_hex = "#b388ff"
+	elif etype in ["help", "give_item"]:
+		icon = "🤝"
+		color_hex = "#69f0ae"
+
+	notification_label.text = "[center][b][color=%s]%s %s[/color][/b][/center]" % [color_hex, icon, description]
+	notification_banner.visible = true
+	_notification_timer = 4.0
 
 func _on_inspect_pressed() -> void:
 	_ensure_node_references()
@@ -330,6 +426,11 @@ func _on_inspect_pressed() -> void:
 		debug_panel.visible = not debug_panel.visible
 		if debug_panel.visible:
 			_populate_character_options()
+
+func _on_close_inspect_button() -> void:
+	_ensure_node_references()
+	if debug_panel != null:
+		debug_panel.visible = false
 
 func _on_close_inspect_pressed() -> void:
 	_ensure_node_references()
@@ -359,6 +460,9 @@ func select_character(char_id: String) -> void:
 	_select_option_by_metadata(character_option_button, char_id)
 	_update_left_panel(char_id)
 	_show_character_debug(char_id)
+	if world_view != null and world_view.has_method("set_selected_character"):
+		world_view.set_selected_character(char_id)
+	character_selected.emit(char_id)
 
 func _show_character_debug(char_id: String) -> void:
 	_ensure_node_references()
@@ -371,8 +475,8 @@ func _show_character_debug(char_id: String) -> void:
 		debug_text.text = "Character not found: %s" % char_id
 
 ## Update the always-visible Left Panel (player-facing, TASK-014): name,
-## location, current action, primary goal, emotion, and for the protagonist
-## also WANT/NEVER/BELIEVE. Distinct from the Developer Debug Mode inspector.
+## location, current action, primary goal, mood in human terms, bond, recent memory,
+## and for the protagonist also dynamic WANT progress and NEVER/BELIEVE.
 func _update_left_panel(char_id: String) -> void:
 	_ensure_node_references()
 	if simulation_runner == null:
@@ -382,20 +486,27 @@ func _update_left_panel(char_id: String) -> void:
 		return
 
 	if left_name_label != null:
-		left_name_label.text = "%s (Protagonist)" % c.name if c.is_protagonist else c.name
+		left_name_label.text = "★ %s (YOU)" % c.name if c.is_protagonist else c.name
+		if c.is_protagonist:
+			left_name_label.modulate = Color(1.0, 0.9, 0.3)
+		else:
+			left_name_label.modulate = Color(1.0, 1.0, 1.0)
 	if left_location_label != null:
 		left_location_label.text = "Location: %s" % _location_display_name(c.current_location)
 	if left_action_label != null:
-		left_action_label.text = "Action: %s" % c.current_action.get("description", c.current_action.get("id", "Idle"))
+		var act_desc: String = c.current_action.get("description", c.current_action.get("id", "Idle"))
+		left_action_label.text = "Action: %s" % act_desc
 	if left_goal_label != null:
 		var goal_desc: String = "None"
 		if not c.goals.is_empty() and c.goals[0] is Dictionary:
 			goal_desc = c.goals[0].get("description", c.goals[0].get("id", "Unnamed goal"))
 		left_goal_label.text = "Goal: %s" % goal_desc
 	if left_emotion_label != null:
-		left_emotion_label.text = "Emotion: Happy %.2f | Fear %.2f | Anger %.2f | Stress %.2f" % [
-			c.get_emotion("happiness"), c.get_emotion("fear"), c.get_emotion("anger"), c.get_emotion("stress")
-		]
+		left_emotion_label.text = "Emotion: %s" % _format_qualitative_mood(c)
+	if left_relationship_label != null:
+		left_relationship_label.text = "Bond: %s" % _format_key_relationship(c)
+	if left_memory_label != null:
+		left_memory_label.text = "Recent: %s" % _format_recent_memory(c)
 
 	var show_directives: bool = c.is_protagonist and c.has_directives()
 	if left_directives_separator != null:
@@ -404,6 +515,8 @@ func _update_left_panel(char_id: String) -> void:
 		left_directives_title.visible = show_directives
 	if left_want_label != null:
 		left_want_label.visible = show_directives
+	if left_want_progress_label != null:
+		left_want_progress_label.visible = show_directives
 	if left_never_label != null:
 		left_never_label.visible = show_directives
 	if left_believe_label != null:
@@ -415,10 +528,158 @@ func _update_left_panel(char_id: String) -> void:
 		var believe_dir = c.get_directive("believe")
 		if left_want_label != null and want_dir != null:
 			left_want_label.text = "WANT: %s" % want_dir.title
+		if left_want_progress_label != null and want_dir != null:
+			var wid: String = want_dir.id if "id" in want_dir else ""
+			left_want_progress_label.text = _format_want_progress(c, wid)
 		if left_never_label != null and never_dir != null:
 			left_never_label.text = "NEVER: %s" % never_dir.title
 		if left_believe_label != null and believe_dir != null:
 			left_believe_label.text = "BELIEVE: %s" % believe_dir.title
+
+func _format_qualitative_mood(c: CharacterState) -> String:
+	var happy: float = c.get_emotion("happiness")
+	var fear: float = c.get_emotion("fear")
+	var anger: float = c.get_emotion("anger")
+	var stress: float = c.get_emotion("stress")
+
+	if stress >= 0.7 or fear >= 0.7:
+		if anger >= 0.5:
+			return "Cornered & Hostile"
+		elif fear >= 0.7:
+			return "Terrified & Paranoid"
+		else:
+			return "Severe Stress & Shaken"
+	elif anger >= 0.6:
+		return "Agitated & Confrontational"
+	elif fear >= 0.5:
+		return "Anxious & On Edge"
+	elif stress >= 0.5:
+		return "Tense & Pressured"
+	elif happy >= 0.65:
+		return "Optimistic & Cheerful"
+	elif happy >= 0.45:
+		return "Calm & Composed"
+	elif fear >= 0.35 or stress >= 0.35:
+		return "Uneasy & Guarded"
+	else:
+		return "Quiet & Observant"
+
+func _format_key_relationship(c: CharacterState) -> String:
+	if simulation_runner == null:
+		return "None"
+	var best_char: String = ""
+	var best_trust: float = -1.0
+	var worst_char: String = ""
+	var worst_trust: float = 2.0
+
+	for other_id in c.relationships.keys():
+		var other = simulation_runner.get_character(other_id)
+		if other == null:
+			continue
+		var trust: float = c.get_relationship_value(other_id, "trust")
+		if trust > best_trust:
+			best_trust = trust
+			best_char = other.name
+		if trust < worst_trust:
+			worst_trust = trust
+			worst_char = other.name
+
+	if best_trust >= 0.6:
+		return "Close bond with %s" % best_char
+	elif worst_trust <= 0.35 and not worst_char.is_empty():
+		return "Suspicious of %s" % worst_char
+	elif best_trust >= 0.45 and not best_char.is_empty():
+		return "Friendly with %s" % best_char
+	elif not best_char.is_empty():
+		return "Neutral toward %s" % best_char
+	return "Keeps to themselves"
+
+func _format_recent_memory(c: CharacterState) -> String:
+	var memories = c.get_memories()
+	if memories.is_empty():
+		return "Nothing notable yet"
+	var last_mem = memories[memories.size() - 1]
+	var desc: String = ""
+	if last_mem is MemoryClass:
+		desc = last_mem.description
+	elif last_mem is Dictionary:
+		desc = str(last_mem.get("description", ""))
+	if desc.is_empty():
+		return "Routine observations"
+	if desc.length() > 36:
+		desc = desc.substr(0, 33) + "..."
+	return desc
+
+func _format_want_progress(protagonist: CharacterState, want_id: String) -> String:
+	match want_id:
+		"learn_room_407":
+			var has_room_status: bool = protagonist.has_belief("room_407", "status") and protagonist.get_belief_value("room_407", "status") != "locked"
+			var has_key: bool = "key_room_407" in protagonist.inventory or protagonist.has_hidden_item("key_room_407") or protagonist.has_belief("room_407", "key_holder")
+			if has_room_status:
+				return "Progress: Uncovered Room 407 details!"
+			elif has_key:
+				return "Progress: Has Room 407 key / lead"
+			elif protagonist.current_location == "room_407":
+				return "Progress: Currently searching Room 407"
+			else:
+				for m in protagonist.get_memories():
+					var loc: String = m.location if m is MemoryClass else str(m.get("location", ""))
+					if loc == "room_407":
+						return "Progress: Searched 407, seeking clues"
+				return "Progress: Not investigated yet"
+
+		"earn_money":
+			var valuable_items: Array[String] = ["cash", "hidden_cash", "stolen_jewelry"]
+			var count: int = 0
+			for item in protagonist.inventory:
+				if item in valuable_items: count += 1
+			for item in protagonist.hidden_items:
+				if item in valuable_items: count += 1
+			return "Progress: Holding %d valuable(s)" % count
+
+		"make_friend":
+			var best_trust: float = 0.0
+			var best_name: String = "nobody"
+			for other_id in protagonist.relationships.keys():
+				var t: float = protagonist.get_relationship_value(other_id, "trust")
+				if t > best_trust:
+					best_trust = t
+					if simulation_runner != null:
+						var other = simulation_runner.get_character(other_id)
+						if other != null:
+							best_name = other.name
+			if best_trust >= 0.7:
+				return "Progress: Bond formed with %s!" % best_name
+			elif best_trust >= 0.5:
+				return "Progress: Warmer with %s (Trust %.0f%%)" % [best_name, best_trust * 100.0]
+			return "Progress: No close bonds yet"
+
+		"survive_night":
+			var confront_count: int = 0
+			if simulation_runner != null:
+				for evt in simulation_runner.get_events():
+					if evt.get("event_type", "") == "confront" and evt.get("target_id", "") == protagonist.id:
+						confront_count += 1
+			if confront_count == 0:
+				return "Progress: Safe (0 confrontations)"
+			else:
+				return "Progress: Confronted %d time(s)!" % confront_count
+
+		"be_trusted":
+			if simulation_runner == null:
+				return "Progress: Evaluating..."
+			var total: float = 0.0
+			var n: int = 0
+			for c in simulation_runner.get_all_characters():
+				if c.id == protagonist.id:
+					continue
+				total += c.get_relationship_value(protagonist.id, "trust")
+				n += 1
+			var avg: float = total / n if n > 0 else 0.0
+			return "Progress: Community trust %.0f%%" % (avg * 100.0)
+
+		_:
+			return "Progress: In pursuit"
 
 func _location_display_name(loc_id: String) -> String:
 	if simulation_runner != null:
@@ -501,27 +762,62 @@ func _format_directives_summary(result: Dictionary) -> String:
 	var believe: Dictionary = result.get("believe", {})
 
 	var lines: Array[String] = []
+	lines.append("[font_size=15][b][color=#ffd700]▶ DIRECTIVE VERDICTS[/color][/b][/font_size]")
+	lines.append("")
 	lines.append("[b]WANT[/b]: %s" % want.get("title", ""))
-	lines.append("[color=%s]%s[/color] — %s" % [_status_color(want.get("status", "")), str(want.get("status", "")).to_upper(), want.get("reason", "")])
+	var want_status: String = str(want.get("status", "")).to_upper()
+	lines.append("   Verdict: [b][color=%s]● %s[/color][/b] — %s" % [
+		_status_color(want.get("status", "")),
+		want_status,
+		want.get("reason", "")
+	])
 	lines.append("")
 	lines.append("[b]NEVER[/b]: %s" % never.get("title", ""))
-	lines.append("[color=%s]%s[/color]" % [_status_color(never.get("status", "")), str(never.get("status", "")).to_upper()])
+	var never_status: String = str(never.get("status", "")).to_upper()
+	var never_detail: String = "Rule was strictly respected throughout the night." if never_status == "RESPECTED" else "Rule was broken during the simulation!"
+	lines.append("   Verdict: [b][color=%s]● %s[/color][/b] — %s" % [
+		_status_color(never.get("status", "")),
+		never_status,
+		never_detail
+	])
 	lines.append("")
 	lines.append("[b]BELIEVE[/b]: %s" % believe.get("title", ""))
-	lines.append(believe.get("summary", ""))
+	lines.append("   Worldview: %s" % believe.get("summary", ""))
 	return "\n".join(lines)
 
 func _format_final_state(state: Dictionary) -> String:
 	if state.is_empty():
 		return "-"
-	var emotions: Dictionary = state.get("emotions", {})
 	var lines: Array[String] = []
-	lines.append("%s ended the night in %s." % [state.get("name", ""), str(state.get("location", "")).capitalize()])
-	lines.append("Happy %.2f | Fear %.2f | Anger %.2f | Stress %.2f" % [
-		emotions.get("happiness", 0.0), emotions.get("fear", 0.0), emotions.get("anger", 0.0), emotions.get("stress", 0.0)
-	])
+	lines.append("[b]Location:[/b] %s" % str(state.get("location", "")).capitalize())
+
+	var emotions: Dictionary = state.get("emotions", {})
+	var happy: float = float(emotions.get("happiness", 0.0))
+	var fear: float = float(emotions.get("fear", 0.0))
+	var anger: float = float(emotions.get("anger", 0.0))
+	var stress: float = float(emotions.get("stress", 0.0))
+
+	var mood_str: String = "Quiet & Guarded"
+	if stress >= 0.7 or fear >= 0.7:
+		mood_str = "Terrified & Shaken" if fear >= 0.7 else "Severely Stressed"
+	elif anger >= 0.6:
+		mood_str = "Bitter & Resentful"
+	elif fear >= 0.5:
+		mood_str = "Nervous & Paranoid"
+	elif happy >= 0.6:
+		mood_str = "Triumphant & Content"
+	elif happy >= 0.4:
+		mood_str = "Relieved & Peaceful"
+	lines.append("[b]Mental State:[/b] %s" % mood_str)
+
 	var inv: Array = state.get("inventory", [])
-	lines.append("Inventory: %s" % (", ".join(inv) if not inv.is_empty() else "(empty)"))
+	var inv_str: String = "(Nothing in pockets)"
+	if not inv.is_empty():
+		var pretty_items: Array[String] = []
+		for item in inv:
+			pretty_items.append(str(item).replace("_", " ").capitalize())
+		inv_str = ", ".join(pretty_items)
+	lines.append("[b]Possessions:[/b] %s" % inv_str)
 	return "\n".join(lines)
 
 func _format_bulleted(lines: Array, empty_text: String) -> String:
@@ -545,7 +841,23 @@ func _format_secrets(secrets: Array) -> String:
 func _format_timeline(lines: Array) -> String:
 	if lines.is_empty():
 		return "Nothing significant happened tonight."
-	return "\n↓\n".join(lines)
+	var styled_lines: Array[String] = []
+	for i in range(lines.size()):
+		var line: String = str(lines[i])
+		if i == 0 and line.begins_with("Player directive:"):
+			styled_lines.append("[color=#ffd54f][b]▶ INTENTION:[/b] %s[/color]" % line.substr(17).strip_edges())
+		elif "confront" in line.to_lower() or "refuse" in line.to_lower() or "argue" in line.to_lower():
+			styled_lines.append("[color=#ff6b6b]⚠️ %s[/color]" % line)
+		elif "room 407" in line.to_lower() or "secret" in line.to_lower():
+			styled_lines.append("[color=#cc88ff]🗝️ %s[/color]" % line)
+		elif "help" in line.to_lower() or "share" in line.to_lower():
+			styled_lines.append("[color=#69f0ae]🤝 %s[/color]" % line)
+		elif "alex" in line.to_lower():
+			styled_lines.append("[color=#40c4ff]%s[/color]" % line)
+		else:
+			styled_lines.append("[color=#cfd8dc]%s[/color]" % line)
+
+	return "\n[color=#546e7a]   ↓[/color]\n".join(styled_lines)
 
 func _on_replay_same_seed_pressed() -> void:
 	_ensure_node_references()
