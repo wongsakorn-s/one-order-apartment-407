@@ -24,10 +24,11 @@ const TestRoom407Script = preload("res://tests/test_room_407.gd")
 const TestRunEvaluatorScript = preload("res://tests/test_run_evaluator.gd")
 const TestEndRunScreenScript = preload("res://tests/test_end_run_screen.gd")
 const TestDeterminismSuiteScript = preload("res://tests/test_determinism_suite.gd")
+const TestStressTestMetricsScript = preload("res://tests/test_stress_test_metrics.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-017")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-018")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -246,6 +247,17 @@ func _init() -> void:
 	print("\n[SUITE] TestDeterminismSuite:")
 	var determinism_results: Array[Dictionary] = TestDeterminismSuiteScript.run_all()
 	for res in determinism_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 21. Stress Test Metrics Tests (TASK-018)
+	print("\n[SUITE] TestStressTestMetrics:")
+	var stress_metrics_results: Array[Dictionary] = TestStressTestMetricsScript.run_all()
+	for res in stress_metrics_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1
