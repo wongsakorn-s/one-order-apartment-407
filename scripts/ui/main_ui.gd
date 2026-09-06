@@ -614,7 +614,7 @@ func _format_want_progress(protagonist: CharacterState, want_id: String) -> Stri
 	match want_id:
 		"learn_room_407":
 			var has_room_status: bool = protagonist.has_belief("room_407", "status") and protagonist.get_belief_value("room_407", "status") != "locked"
-			var has_key: bool = "key_room_407" in protagonist.inventory or protagonist.has_hidden_item("key_room_407") or protagonist.has_belief("room_407", "key_holder")
+			var has_key: bool = "room_407_key" in protagonist.inventory or protagonist.has_hidden_item("room_407_key") or protagonist.has_belief("room_407", "key_holder")
 			if has_room_status:
 				return "Progress: Uncovered Room 407 details!"
 			elif has_key:
