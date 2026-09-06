@@ -8,6 +8,11 @@ extends Node2D
 const WorldGraphClass = preload("res://scripts/world/world_graph.gd")
 const CharacterStateClass = preload("res://scripts/characters/character_state.gd")
 
+## Emitted when the player clicks a character circle. TASK-014 Observer UI.
+signal character_selected(char_id: String)
+
+const CHARACTER_CLICK_RADIUS: float = 16.0
+
 # 2D Screen layout for presentation only (Logical simulation does NOT use these coordinates)
 const ROOM_RECTS: Dictionary = {
 	# Rooftop (Top level)
@@ -37,11 +42,33 @@ const ROOM_RECTS: Dictionary = {
 var _world_graph: WorldGraph
 var _characters: Array[CharacterState] = []
 
+## Screen-space hit regions rebuilt every draw so clicks can be resolved
+## back to a character ID without duplicating layout logic.
+var _character_hit_positions: Dictionary = {}
+
 func _ready() -> void:
 	if _world_graph == null:
 		# Fallback to default apartment graph if not injected yet
 		_world_graph = WorldGraphClass.create_default_apartment()
 	queue_redraw()
+
+## Resolve a click at the given local position to a character ID, if any
+## circle is within CHARACTER_CLICK_RADIUS of it.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		var clicked_id: String = _resolve_click(event.position)
+		if not clicked_id.is_empty():
+			character_selected.emit(clicked_id)
+
+func _resolve_click(pos: Vector2) -> String:
+	var closest_id: String = ""
+	var closest_dist: float = CHARACTER_CLICK_RADIUS
+	for char_id in _character_hit_positions.keys():
+		var dist: float = pos.distance_to(_character_hit_positions[char_id])
+		if dist <= closest_dist:
+			closest_dist = dist
+			closest_id = char_id
+	return closest_id
 
 ## Inject the WorldGraph and optional characters from SimulationRunner
 func setup(graph: WorldGraph, characters: Array[CharacterState] = []) -> void:
@@ -194,6 +221,8 @@ func _draw() -> void:
 		draw_string(font, Vector2(60, 605), "GROUND", HORIZONTAL_ALIGNMENT_LEFT, 80, 12, Color(0.5, 0.65, 0.8))
 
 func _draw_characters(font: Font) -> void:
+	_character_hit_positions.clear()
+
 	# Group characters by location
 	var by_location: Dictionary = {}
 	for c in _characters:
@@ -241,7 +270,9 @@ func _draw_characters(font: Font) -> void:
 			if c.is_protagonist:
 				draw_circle(circle_pos, 3.0, Color.WHITE)
 
-			# Draw character name
+			_character_hit_positions[c.id] = circle_pos
+
+			# Draw character name and current action
 			if font != null:
 				var label_text: String = "%s (P)" % c.name if c.is_protagonist else c.name
 				var label_pos: Vector2 = Vector2(circle_pos.x - 24.0, circle_pos.y - 12.0)
@@ -253,4 +284,15 @@ func _draw_characters(font: Font) -> void:
 					48.0,
 					10,
 					Color(0.95, 0.98, 1.0, 0.95)
+				)
+
+				var action_label: String = str(c.current_action.get("id", "idle")).capitalize()
+				draw_string(
+					font,
+					Vector2(circle_pos.x - 24.0, circle_pos.y + 20.0),
+					action_label,
+					HORIZONTAL_ALIGNMENT_CENTER,
+					48.0,
+					8,
+					Color(0.65, 0.85, 0.95, 0.85)
 				)

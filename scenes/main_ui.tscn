@@ -1,6 +1,18 @@
-[gd_scene load_steps=2 format=3 uid="uid://cb5p12v4r177q"]
+[gd_scene load_steps=3 format=3 uid="uid://cb5p12v4r177q"]
 
 [ext_resource type="Script" path="res://scripts/ui/main_ui.gd" id="1_mainui"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_side_panel"]
+bg_color = Color(0.08, 0.1, 0.15, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3, 0.45, 0.65, 0.6)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="MainUI" type="CanvasLayer"]
 script = ExtResource("1_mainui")
@@ -131,12 +143,119 @@ custom_minimum_size = Vector2(40, 32)
 layout_mode = 2
 text = "4x"
 
-[node name="DebugPanel" type="PanelContainer" parent="RootControl"]
+[node name="LeftPanel" type="PanelContainer" parent="RootControl"]
 unique_name_in_owner = true
-visible = false
 layout_mode = 1
-anchors_preset = 11
+anchor_left = 0.0
+anchor_top = 0.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 80.0
+offset_right = 300.0
+offset_bottom = -20.0
+grow_horizontal = 1
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
+
+[node name="LeftMargin" type="MarginContainer" parent="RootControl/LeftPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="LeftVBox" type="VBoxContainer" parent="RootControl/LeftPanel/LeftMargin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LeftTitle" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Selected Character"
+
+[node name="LeftNameLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+text = "-"
+
+[node name="LeftLocationLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.7, 0.8, 0.9, 1)
+autowrap_mode = 3
+text = "Location: -"
+
+[node name="LeftActionLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+text = "Action: -"
+
+[node name="LeftGoalLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+text = "Goal: -"
+
+[node name="LeftEmotionLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.8, 0.85, 0.6, 1)
+text = "Emotion: -"
+
+[node name="LeftDirectivesSeparator" type="HSeparator" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+visible = false
+
+[node name="LeftDirectivesTitle" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.9, 0.8, 0.3, 1)
+text = "PROTAGONIST DIRECTIVES"
+visible = false
+
+[node name="LeftWantLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.4, 0.9, 0.5, 1)
+text = "WANT: -"
+visible = false
+
+[node name="LeftNeverLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+theme_override_colors/font_color = Color(1, 0.5, 0.5, 1)
+text = "NEVER: -"
+visible = false
+
+[node name="LeftBelieveLabel" type="Label" parent="RootControl/LeftPanel/LeftMargin/LeftVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 12
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.5, 0.75, 1, 1)
+text = "BELIEVE: -"
+visible = false
+
+[node name="EventFeedPanel" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+layout_mode = 1
 anchor_left = 1.0
+anchor_top = 0.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = -340.0
@@ -144,6 +263,46 @@ offset_top = 80.0
 offset_right = -20.0
 offset_bottom = -20.0
 grow_horizontal = 0
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
+
+[node name="EventFeedMargin" type="MarginContainer" parent="RootControl/EventFeedPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="EventFeedVBox" type="VBoxContainer" parent="RootControl/EventFeedPanel/EventFeedMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EventFeedTitle" type="Label" parent="RootControl/EventFeedPanel/EventFeedMargin/EventFeedVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+text = "Event Feed"
+
+[node name="EventFeedText" type="RichTextLabel" parent="RootControl/EventFeedPanel/EventFeedMargin/EventFeedVBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 12
+bbcode_enabled = true
+scroll_following = true
+text = ""
+
+[node name="DebugPanel" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 340.0
+offset_top = 80.0
+offset_right = -360.0
+offset_bottom = -20.0
+grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Margin" type="MarginContainer" parent="RootControl/DebugPanel"]

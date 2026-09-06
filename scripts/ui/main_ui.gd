@@ -9,6 +9,10 @@ const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalo
 
 @export var simulation_runner: SimulationRunner
 
+var _selected_character_id: String = ""
+var _feed_lines: Array[String] = []
+const MAX_FEED_LINES: int = 100
+
 @onready var time_label: Label = %TimeLabel
 @onready var seed_label: Label = %SeedLabel
 @onready var status_label: Label = %StatusLabel
@@ -23,6 +27,19 @@ const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalo
 @onready var close_inspect_button: Button = %CloseInspectButton
 @onready var character_option_button: OptionButton = %CharacterOptionButton
 @onready var debug_text: RichTextLabel = %DebugText
+
+@onready var left_name_label: Label = %LeftNameLabel
+@onready var left_location_label: Label = %LeftLocationLabel
+@onready var left_action_label: Label = %LeftActionLabel
+@onready var left_goal_label: Label = %LeftGoalLabel
+@onready var left_emotion_label: Label = %LeftEmotionLabel
+@onready var left_directives_separator: HSeparator = %LeftDirectivesSeparator
+@onready var left_directives_title: Label = %LeftDirectivesTitle
+@onready var left_want_label: Label = %LeftWantLabel
+@onready var left_never_label: Label = %LeftNeverLabel
+@onready var left_believe_label: Label = %LeftBelieveLabel
+
+@onready var event_feed_text: RichTextLabel = %EventFeedText
 
 @onready var setup_panel: PanelContainer = %SetupPanel
 @onready var close_setup_button: Button = %CloseSetupButton
@@ -98,6 +115,30 @@ func _ensure_node_references() -> void:
 		character_option_button = get_node_or_null("%CharacterOptionButton") as OptionButton
 	if debug_text == null:
 		debug_text = get_node_or_null("%DebugText") as RichTextLabel
+
+	if left_name_label == null:
+		left_name_label = get_node_or_null("%LeftNameLabel") as Label
+	if left_location_label == null:
+		left_location_label = get_node_or_null("%LeftLocationLabel") as Label
+	if left_action_label == null:
+		left_action_label = get_node_or_null("%LeftActionLabel") as Label
+	if left_goal_label == null:
+		left_goal_label = get_node_or_null("%LeftGoalLabel") as Label
+	if left_emotion_label == null:
+		left_emotion_label = get_node_or_null("%LeftEmotionLabel") as Label
+	if left_directives_separator == null:
+		left_directives_separator = get_node_or_null("%LeftDirectivesSeparator") as HSeparator
+	if left_directives_title == null:
+		left_directives_title = get_node_or_null("%LeftDirectivesTitle") as Label
+	if left_want_label == null:
+		left_want_label = get_node_or_null("%LeftWantLabel") as Label
+	if left_never_label == null:
+		left_never_label = get_node_or_null("%LeftNeverLabel") as Label
+	if left_believe_label == null:
+		left_believe_label = get_node_or_null("%LeftBelieveLabel") as Label
+
+	if event_feed_text == null:
+		event_feed_text = get_node_or_null("%EventFeedText") as RichTextLabel
 
 	if setup_panel == null:
 		setup_panel = get_node_or_null("%SetupPanel") as PanelContainer
@@ -200,17 +241,45 @@ func _populate_character_options() -> void:
 		character_option_button.set_item_metadata(i, c.id)
 
 	if chars.size() > 0:
-		_show_character_debug(chars[0].id)
+		var to_select: String = _selected_character_id
+		if to_select.is_empty() or simulation_runner.get_character(to_select) == null:
+			to_select = simulation_runner.get_protagonist().id if simulation_runner.get_protagonist() != null else chars[0].id
+		select_character(to_select)
 
 func _on_characters_updated() -> void:
 	_populate_character_options()
 
-func _on_event_emitted(_event_dict: Dictionary) -> void:
+func _on_event_emitted(event_dict: Dictionary) -> void:
+	_ensure_node_references()
+	_append_event_feed_line(event_dict)
+
 	if debug_panel != null and debug_panel.visible and character_option_button != null:
 		var selected_idx = character_option_button.selected
 		if selected_idx >= 0:
 			var selected_id = character_option_button.get_item_metadata(selected_idx)
 			_show_character_debug(selected_id)
+
+	if not _selected_character_id.is_empty():
+		_update_left_panel(_selected_character_id)
+
+## Append a formatted line to the always-visible live Event Feed (TASK-014).
+func _append_event_feed_line(event_dict: Dictionary) -> void:
+	if event_feed_text == null:
+		return
+
+	var total_seconds: int = int(float(event_dict.get("timestamp", 0.0)))
+	var hours: int = (total_seconds / 3600) % 24
+	var minutes: int = (total_seconds % 3600) / 60
+	var description: String = str(event_dict.get("description", ""))
+	if description.is_empty():
+		return
+
+	_feed_lines.append("%02d:%02d %s" % [hours, minutes, description])
+	if _feed_lines.size() > MAX_FEED_LINES:
+		_feed_lines.remove_at(0)
+
+	event_feed_text.text = "\n".join(_feed_lines)
+	event_feed_text.scroll_to_line(event_feed_text.get_line_count() - 1)
 
 func _on_inspect_pressed() -> void:
 	_ensure_node_references()
@@ -229,6 +298,23 @@ func _on_character_selected(index: int) -> void:
 	if character_option_button == null:
 		return
 	var char_id: String = character_option_button.get_item_metadata(index)
+	select_character(char_id)
+
+## Called when the player clicks a character circle in the WorldView (TASK-014).
+func on_world_character_selected(char_id: String) -> void:
+	select_character(char_id)
+
+## Unified selection entry point: updates the always-visible Left Panel and,
+## if open, the Developer Debug Mode inspector, keeping both in sync regardless
+## of whether selection came from clicking the world view or the dropdown.
+func select_character(char_id: String) -> void:
+	_ensure_node_references()
+	if simulation_runner == null or simulation_runner.get_character(char_id) == null:
+		return
+
+	_selected_character_id = char_id
+	_select_option_by_metadata(character_option_button, char_id)
+	_update_left_panel(char_id)
 	_show_character_debug(char_id)
 
 func _show_character_debug(char_id: String) -> void:
@@ -240,6 +326,65 @@ func _show_character_debug(char_id: String) -> void:
 		debug_text.text = c.get_debug_summary()
 	else:
 		debug_text.text = "Character not found: %s" % char_id
+
+## Update the always-visible Left Panel (player-facing, TASK-014): name,
+## location, current action, primary goal, emotion, and for the protagonist
+## also WANT/NEVER/BELIEVE. Distinct from the Developer Debug Mode inspector.
+func _update_left_panel(char_id: String) -> void:
+	_ensure_node_references()
+	if simulation_runner == null:
+		return
+	var c: CharacterState = simulation_runner.get_character(char_id)
+	if c == null:
+		return
+
+	if left_name_label != null:
+		left_name_label.text = "%s (Protagonist)" % c.name if c.is_protagonist else c.name
+	if left_location_label != null:
+		left_location_label.text = "Location: %s" % _location_display_name(c.current_location)
+	if left_action_label != null:
+		left_action_label.text = "Action: %s" % c.current_action.get("description", c.current_action.get("id", "Idle"))
+	if left_goal_label != null:
+		var goal_desc: String = "None"
+		if not c.goals.is_empty() and c.goals[0] is Dictionary:
+			goal_desc = c.goals[0].get("description", c.goals[0].get("id", "Unnamed goal"))
+		left_goal_label.text = "Goal: %s" % goal_desc
+	if left_emotion_label != null:
+		left_emotion_label.text = "Emotion: Happy %.2f | Fear %.2f | Anger %.2f | Stress %.2f" % [
+			c.get_emotion("happiness"), c.get_emotion("fear"), c.get_emotion("anger"), c.get_emotion("stress")
+		]
+
+	var show_directives: bool = c.is_protagonist and c.has_directives()
+	if left_directives_separator != null:
+		left_directives_separator.visible = show_directives
+	if left_directives_title != null:
+		left_directives_title.visible = show_directives
+	if left_want_label != null:
+		left_want_label.visible = show_directives
+	if left_never_label != null:
+		left_never_label.visible = show_directives
+	if left_believe_label != null:
+		left_believe_label.visible = show_directives
+
+	if show_directives:
+		var want_dir = c.get_directive("want")
+		var never_dir = c.get_directive("never")
+		var believe_dir = c.get_directive("believe")
+		if left_want_label != null and want_dir != null:
+			left_want_label.text = "WANT: %s" % want_dir.title
+		if left_never_label != null and never_dir != null:
+			left_never_label.text = "NEVER: %s" % never_dir.title
+		if left_believe_label != null and believe_dir != null:
+			left_believe_label.text = "BELIEVE: %s" % believe_dir.title
+
+func _location_display_name(loc_id: String) -> String:
+	if simulation_runner != null:
+		var world_graph = simulation_runner.get_world_graph()
+		if world_graph != null:
+			var loc = world_graph.get_location(loc_id)
+			if loc != null:
+				return loc.display_name
+	return loc_id.capitalize()
 
 func _on_seed_changed(new_seed: int) -> void:
 	_ensure_node_references()
@@ -426,3 +571,5 @@ func _on_directives_updated(_want_id: String, _never_id: String, _belief_id: Str
 		if selected_idx >= 0:
 			var selected_id = character_option_button.get_item_metadata(selected_idx)
 			_show_character_debug(selected_id)
+	if not _selected_character_id.is_empty():
+		_update_left_panel(_selected_character_id)

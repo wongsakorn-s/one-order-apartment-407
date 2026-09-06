@@ -19,6 +19,8 @@ func _ready() -> void:
 			)
 			if not simulation_runner.characters_updated.is_connected(_on_characters_updated):
 				simulation_runner.characters_updated.connect(_on_characters_updated)
+			if main_ui != null and not world_view.character_selected.is_connected(main_ui.on_world_character_selected):
+				world_view.character_selected.connect(main_ui.on_world_character_selected)
 
 func _on_characters_updated() -> void:
 	if world_view != null and simulation_runner != null:
