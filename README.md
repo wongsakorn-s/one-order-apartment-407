@@ -34,6 +34,11 @@ Requires **Godot 4.7+** (Mono/.NET build not required, GDScript only).
   godot --headless --path . -s res://scripts/tools/stress_test_runner.gd
   ```
   Pass a run count as a CLI user arg to change the sample size, e.g. `-- 100`.
+- **Run the playtest analysis harness** (12 full runs across directive groups & replay suite):
+  ```
+  godot --headless --path . -s res://scripts/tools/playtest_harness.gd
+  ```
+  See `docs/PLAYTEST_001_REPORT.md` for the formal gameplay review report.
 
 ## Architecture
 
