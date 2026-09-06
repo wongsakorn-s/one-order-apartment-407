@@ -2,7 +2,7 @@
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
   "files.eol": "\n",
-  "git.autorefresh": true,
+  "git.autorefresh": false,
   "git.autofetch": false,
   "git.autoStash": false,
   "files.watcherExclude": {
