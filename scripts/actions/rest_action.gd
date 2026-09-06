@@ -36,6 +36,7 @@ func _apply_effects(context: Dictionary) -> void:
 		actor.set_need("rest", actor.get_need("rest") + 0.20)
 		actor.set_emotion("stress", actor.get_emotion("stress") - 0.10)
 		actor.set_emotion("happiness", actor.get_emotion("happiness") + 0.05)
+		state_changes = {"rest_delta": 0.20, "stress_delta": -0.10, "happiness_delta": 0.05}
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

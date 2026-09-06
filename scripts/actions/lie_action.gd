@@ -88,6 +88,11 @@ func _apply_effects(context: Dictionary) -> void:
 	metadata["predicate"] = predicate
 	metadata["false_value"] = false_value
 
+	state_changes = {
+		"belief_fabricated": {"subject": actor_id, "predicate": predicate, "value": false_value, "confidence": rec_confidence},
+		"actor_stress_delta": 0.05
+	}
+
 ## Deterministically pick the first sensitive self-belief (fixed priority order)
 ## the actor actually holds, so the same state always yields the same lie.
 func _pick_predicate(actor: CharacterState) -> String:

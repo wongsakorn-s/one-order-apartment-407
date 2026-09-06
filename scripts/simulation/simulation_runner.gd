@@ -35,6 +35,7 @@ var active_belief_id: String = "everyone_hiding_something"
 var _characters: Dictionary = {}
 var _events: Array[Dictionary] = []
 var _secrets: Array[Dictionary] = []
+var _event_id_counter: int = 0
 
 func _ready() -> void:
 	_init_simulation()
@@ -169,6 +170,11 @@ func _tick_simulation(sim_delta: float) -> void:
 				var decision: UtilityDecision = utility_ai.decide_action(char_state, context)
 				if decision != null and decision.action != null:
 					char_state.last_decision = decision.to_dict()
+					# TASK-013: attach the decision's structured reasons and any
+					# causally contributing past events so the completion event
+					# can explain WHY this action was chosen.
+					decision.action.reasons = decision.reasons.duplicate(true)
+					decision.action.parent_event_ids = decision.contributing_event_ids.duplicate()
 					if decision.action.start(context):
 						char_state.set_active_action(decision.action)
 						any_state_changed = true
@@ -193,6 +199,11 @@ const EVENT_IMPORTANCE: Dictionary = {
 func _record_event(evt: SimulationEvent) -> void:
 	if evt == null:
 		return
+
+	# TASK-013: centralize ID assignment so every event gets a stable, globally
+	# unique ID even when multiple actions complete within the same tick.
+	_event_id_counter += 1
+	evt.id = "evt_%06d" % _event_id_counter
 	var evt_dict = evt.to_dict()
 	_events.append(evt_dict)
 	if _events.size() > 200:
@@ -447,6 +458,7 @@ func reset_simulation(new_seed: int = -1) -> void:
 		clock.reset()
 
 	_events.clear()
+	_event_id_counter = 0
 	world_graph = WorldGraph.create_default_apartment()
 	utility_ai = UtilityAIClass.new()
 	spawn_initial_characters()

@@ -17,6 +17,7 @@ func _apply_effects(context: Dictionary) -> void:
 		# Slight baseline relaxation
 		actor.set_emotion("stress", actor.get_emotion("stress") - 0.02)
 		actor.set_need("rest", actor.get_need("rest") + 0.01)
+		state_changes = {"stress_delta": -0.02, "rest_delta": 0.01}
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

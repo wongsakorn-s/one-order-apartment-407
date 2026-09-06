@@ -41,6 +41,11 @@ func _apply_effects(context: Dictionary) -> void:
 		target.modify_relationship(actor_id, "trust", -0.15)
 		target.modify_relationship(actor_id, "suspicion", 0.10)
 
+		state_changes = {
+			"target_stress_delta": 0.05,
+			"relationship_target_to_actor": {"trust": -0.15, "suspicion": 0.10}
+		}
+
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})
 	var actor = characters.get(actor_id, null)

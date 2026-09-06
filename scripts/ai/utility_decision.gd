@@ -13,18 +13,24 @@ var reasons: Dictionary = {}
 var candidates: Array[Dictionary] = []
 var explanation: String = ""
 
+## TASK-013: IDs of earlier events (drawn from memories that influenced this
+## decision) that causally contributed to choosing this action.
+var contributing_event_ids: Array[String] = []
+
 func _init(
 	p_action: BaseAction = null,
 	p_score: float = 0.0,
 	p_reasons: Dictionary = {},
 	p_candidates: Array[Dictionary] = [],
-	p_explanation: String = ""
+	p_explanation: String = "",
+	p_contributing_event_ids: Array[String] = []
 ) -> void:
 	action = p_action
 	score = p_score
 	reasons = p_reasons.duplicate(true)
 	candidates = p_candidates.duplicate(true)
 	explanation = p_explanation
+	contributing_event_ids = p_contributing_event_ids.duplicate()
 
 func get_explanation() -> String:
 	if not explanation.is_empty():
@@ -47,5 +53,6 @@ func to_dict() -> Dictionary:
 		"score": score,
 		"reasons": reasons.duplicate(true),
 		"explanation": get_explanation(),
-		"candidates": candidates.duplicate(true)
+		"candidates": candidates.duplicate(true),
+		"contributing_event_ids": contributing_event_ids.duplicate()
 	}

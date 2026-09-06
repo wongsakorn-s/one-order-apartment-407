@@ -55,9 +55,16 @@ func _apply_effects(context: Dictionary) -> void:
 		target.modify_relationship(actor_id, "trust", 0.04)
 		target.modify_relationship(actor_id, "suspicion", -0.03)
 
+		state_changes = {
+			"relationship_actor_to_target": {"trust": 0.04, "suspicion": -0.03},
+			"relationship_target_to_actor": {"trust": 0.04, "suspicion": -0.03}
+		}
+
 		# Mutual information exchange during conversation
 		var sim_time: float = float(context.get("sim_time", 0.0))
 		_exchange_information(actor, target, sim_time)
+		if metadata.has("shared_facts"):
+			state_changes["shared_facts"] = metadata["shared_facts"]
 
 func _exchange_information(char_a: CharacterState, char_b: CharacterState, sim_time: float) -> void:
 	_share_belief(char_a, char_b, sim_time)

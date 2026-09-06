@@ -18,10 +18,11 @@ const TestMemoriesScript = preload("res://tests/test_memories.gd")
 const TestKnowledgeBeliefsScript = preload("res://tests/test_knowledge_beliefs.gd")
 const TestSecretsScript = preload("res://tests/test_secrets.gd")
 const TestSocialInteractionsScript = preload("res://tests/test_social_interactions.gd")
+const TestCausalEventsScript = preload("res://tests/test_causal_events.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-012")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-013")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -174,6 +175,17 @@ func _init() -> void:
 	print("\n[SUITE] TestSocialInteractions:")
 	var social_results: Array[Dictionary] = TestSocialInteractionsScript.run_all()
 	for res in social_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 15. Causal Event System Tests (TASK-013)
+	print("\n[SUITE] TestCausalEvents:")
+	var causal_results: Array[Dictionary] = TestCausalEventsScript.run_all()
+	for res in causal_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1

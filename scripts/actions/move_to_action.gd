@@ -47,6 +47,7 @@ func _apply_effects(context: Dictionary) -> void:
 	if actor != null:
 		from_location = actor.current_location
 		actor.current_location = target_id
+		state_changes = {"location": {"from": from_location, "to": target_id}}
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

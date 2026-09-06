@@ -68,10 +68,12 @@ func _apply_effects(context: Dictionary) -> void:
 		metadata["outcome"] = "refuse"
 		actor.modify_relationship(target_id, "trust", -0.05)
 		actor.modify_relationship(target_id, "suspicion", 0.05)
+		state_changes = {"outcome": "refuse", "relationship_actor_to_target": {"trust": -0.05, "suspicion": 0.05}}
 		return
 
 	if target_belief == null:
 		metadata["outcome"] = "unknown"
+		state_changes = {"outcome": "unknown"}
 		return
 
 	var lie_score: float = (1.0 - honesty) + greed * 0.3 - trust * 0.3
@@ -81,12 +83,18 @@ func _apply_effects(context: Dictionary) -> void:
 		var false_value = _fabricate_alternate_value(predicate, target_belief.value)
 		var rec_confidence: float = clampf(0.75 * trust * (1.0 - suspicion * 0.3), 0.1, 1.0)
 		actor.receive_belief(subject, predicate, false_value, rec_confidence, target_id, sim_time)
+		state_changes = {"outcome": "lie", "belief_received": {"subject": subject, "predicate": predicate, "value": false_value, "confidence": rec_confidence}}
 		return
 
 	metadata["outcome"] = "truth"
 	var rec_confidence: float = clampf(target_belief.confidence * trust * (1.0 - suspicion * 0.4), 0.1, 1.0)
 	actor.receive_belief(subject, predicate, target_belief.value, rec_confidence, target_id, sim_time)
 	target.modify_relationship(actor_id, "trust", 0.03)
+	state_changes = {
+		"outcome": "truth",
+		"belief_received": {"subject": subject, "predicate": predicate, "value": target_belief.value, "confidence": rec_confidence},
+		"relationship_target_to_actor": {"trust": 0.03}
+	}
 
 ## Deterministically choose what the actor wants to know, prioritizing active goals.
 func _pick_topic(actor: CharacterState, target: CharacterState) -> Array:

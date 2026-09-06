@@ -42,10 +42,13 @@ func _apply_effects(context: Dictionary) -> void:
 	if actor != null:
 		# Gain information
 		actor.set_need("information", actor.get_need("information") + 0.10)
+		state_changes = {"information_delta": 0.10}
 		# Investigating Room 407 causes slight tension/stress
 		if target_id == "room_407":
 			actor.set_emotion("stress", actor.get_emotion("stress") + 0.05)
 			actor.set_emotion("fear", actor.get_emotion("fear") + 0.05)
+			state_changes["stress_delta"] = 0.05
+			state_changes["fear_delta"] = 0.05
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

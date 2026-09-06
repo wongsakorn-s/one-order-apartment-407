@@ -46,6 +46,8 @@ func _apply_effects(context: Dictionary) -> void:
 	if actor == null:
 		return
 
+	state_changes = {"item_transfer": {"item": target_id, "to": actor_id}}
+
 	if not source_character_id.is_empty():
 		var source_char = characters.get(source_character_id, null)
 		if source_char != null:
@@ -54,6 +56,8 @@ func _apply_effects(context: Dictionary) -> void:
 			source_char.modify_relationship(actor_id, "trust", -0.30)
 			source_char.modify_relationship(actor_id, "suspicion", 0.25)
 			source_char.modify_relationship(actor_id, "respect", -0.20)
+			state_changes["item_transfer"]["from"] = source_character_id
+			state_changes["relationship_source_to_actor"] = {"trust": -0.30, "suspicion": 0.25, "respect": -0.20}
 
 	if not target_id in actor.inventory:
 		actor.inventory.append(target_id)

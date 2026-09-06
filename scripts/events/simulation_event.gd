@@ -13,6 +13,17 @@ var location_id: String = ""
 var description: String = ""
 var metadata: Dictionary = {}
 
+## TASK-013: Causal Event System.
+## parent_event_ids reference earlier events that causally contributed to this
+## one (e.g. a memory of a past event that swayed the decision). reasons holds
+## the same structured contribution breakdown the Utility AI already computes
+## (goal/personality/need/emotion/relationship/memory/directive), not just a
+## human-readable string. state_changes records the concrete simulation state
+## deltas this event's action applied.
+var parent_event_ids: Array[String] = []
+var reasons: Dictionary = {}
+var state_changes: Dictionary = {}
+
 func _init(
 	p_id: String = "",
 	p_timestamp: float = 0.0,
@@ -21,7 +32,10 @@ func _init(
 	p_target_id: String = "",
 	p_location_id: String = "",
 	p_description: String = "",
-	p_metadata: Dictionary = {}
+	p_metadata: Dictionary = {},
+	p_parent_event_ids: Array[String] = [],
+	p_reasons: Dictionary = {},
+	p_state_changes: Dictionary = {}
 ) -> void:
 	id = p_id
 	timestamp = p_timestamp
@@ -31,6 +45,9 @@ func _init(
 	location_id = p_location_id
 	description = p_description
 	metadata = p_metadata
+	parent_event_ids = p_parent_event_ids.duplicate()
+	reasons = p_reasons.duplicate(true)
+	state_changes = p_state_changes.duplicate(true)
 
 ## Convert event to serializable dictionary.
 func to_dict() -> Dictionary:
@@ -42,7 +59,10 @@ func to_dict() -> Dictionary:
 		"target_id": target_id,
 		"location_id": location_id,
 		"description": description,
-		"metadata": metadata.duplicate()
+		"metadata": metadata.duplicate(),
+		"parent_event_ids": parent_event_ids.duplicate(),
+		"reasons": reasons.duplicate(true),
+		"state_changes": state_changes.duplicate(true)
 	}
 
 ## Returns formatted readable time string (HH:MM) plus description.

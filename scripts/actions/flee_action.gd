@@ -48,6 +48,11 @@ func _apply_effects(context: Dictionary) -> void:
 		actor.current_location = target_id
 		actor.set_need("safety", actor.get_need("safety") + 0.10)
 		actor.set_emotion("stress", actor.get_emotion("stress") + 0.05)
+		state_changes = {
+			"location": {"from": from_location, "to": target_id},
+			"safety_delta": 0.10,
+			"stress_delta": 0.05
+		}
 
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})

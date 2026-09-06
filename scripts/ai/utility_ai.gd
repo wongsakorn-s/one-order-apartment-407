@@ -49,6 +49,7 @@ func decide_action(actor: CharacterState, context: Dictionary) -> UtilityDecisio
 	var best_score: float = -999999.0
 	var best_reasons: Dictionary = {}
 	var best_explanation: String = ""
+	var best_contributing_event_ids: Array[String] = []
 
 	for candidate in valid_candidates:
 		var eval_data: Dictionary = score_action(actor, candidate, context)
@@ -60,6 +61,8 @@ func decide_action(actor: CharacterState, context: Dictionary) -> UtilityDecisio
 			best_action = candidate
 			best_reasons = eval_data.get("reasons", {})
 			best_explanation = eval_data.get("explanation", "")
+			best_contributing_event_ids = []
+			best_contributing_event_ids.assign(eval_data.get("contributing_event_ids", []))
 
 	# Sort candidate summaries descending by score for debug visibility
 	evaluated_candidates.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
@@ -71,7 +74,8 @@ func decide_action(actor: CharacterState, context: Dictionary) -> UtilityDecisio
 		best_score,
 		best_reasons,
 		evaluated_candidates,
-		best_explanation
+		best_explanation,
+		best_contributing_event_ids
 	)
 
 ## Generate potential actions available to the character in the current state.
@@ -313,7 +317,10 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		if belief_dir != null and belief_dir.has_method("modify_interpretation"):
 			belief_mod = belief_dir.modify_interpretation(actor, action, context)
 
-	memory_mod = _evaluate_memory_modifier(actor, action, context)
+	var memory_eval: Dictionary = _evaluate_memory_modifier(actor, action, context)
+	memory_mod = float(memory_eval.get("modifier", 0.0))
+	var contributing_event_ids: Array[String] = []
+	contributing_event_ids.assign(memory_eval.get("event_ids", []))
 
 	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + memory_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
 
@@ -343,7 +350,8 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		"target_id": action.target_id,
 		"score": total_score,
 		"reasons": reasons_dict,
-		"explanation": explanation_text
+		"explanation": explanation_text,
+		"contributing_event_ids": contributing_event_ids
 	}
 
 func _evaluate_goal_match(actor: CharacterState, goal_type: String, target_filter: String) -> float:
@@ -477,11 +485,15 @@ func _format_explanation(action: BaseAction, total: float, reasons: Dictionary) 
 			parts.append("%s: %+.2f" % [k, v])
 	return "%s (Score: %.2f) [%s]" % [desc, total, ", ".join(parts)]
 
-func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, context: Dictionary) -> float:
+## Returns {"modifier": float, "event_ids": Array[String]} so decisions swayed
+## by specific past events (TASK-013) can reference them as parent_event_ids.
+func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, context: Dictionary) -> Dictionary:
 	if actor == null or actor.memories.is_empty():
-		return 0.0
+		var empty_ids: Array[String] = []
+		return {"modifier": 0.0, "event_ids": empty_ids}
 
 	var mod: float = 0.0
+	var event_ids: Array[String] = []
 	var target_id: String = action.target_id
 	var characters: Dictionary = context.get("characters", {})
 
@@ -499,10 +511,12 @@ func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, contex
 					if (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
 						if impact > 0.0:
 							mod += imp * impact * 2.5
+							_append_event_id(event_ids, _mem_event_id(m))
 					# If target previously harmed or confronted actor
 					elif (m_event in ["confront", "take_item", "refuse"]) and (m_actor == target_id or target_id in m_parts):
 						if impact < 0.0:
 							mod -= imp * absf(impact) * 1.5
+							_append_event_id(event_ids, _mem_event_id(m))
 
 		"confront":
 			if not target_id.is_empty():
@@ -517,10 +531,12 @@ func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, contex
 					if (m_event in ["confront", "refuse", "take_item"]) and (m_actor == target_id or target_id in m_parts):
 						if impact < 0.0:
 							mod += imp * absf(impact) * 2.2
+							_append_event_id(event_ids, _mem_event_id(m))
 					# Benefactor memory reduces confrontation desire
 					elif (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
 						if impact > 0.0:
 							mod -= imp * impact * 1.8
+							_append_event_id(event_ids, _mem_event_id(m))
 
 		"refuse":
 			if not target_id.is_empty():
@@ -532,8 +548,10 @@ func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, contex
 
 					if (m_event in ["confront", "refuse", "take_item"]) and (m_actor == target_id or target_id in m_parts):
 						mod += imp * 1.5
+						_append_event_id(event_ids, _mem_event_id(m))
 					elif (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
 						mod -= imp * 1.8
+						_append_event_id(event_ids, _mem_event_id(m))
 
 		"talk":
 			if not target_id.is_empty():
@@ -543,6 +561,7 @@ func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, contex
 						var impact: float = m.emotional_impact if m is MemoryClass else float(m.get("emotional_impact", 0.0))
 						var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
 						mod += imp * impact * 1.2
+						_append_event_id(event_ids, _mem_event_id(m))
 
 		"flee":
 			# Fleeing instinct triggered if co-located with someone who previously confronted actor
@@ -556,5 +575,13 @@ func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, contex
 							if m_event in ["confront", "take_item"] and other_id in m_parts:
 								var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
 								mod += imp * 2.0
+								_append_event_id(event_ids, _mem_event_id(m))
 
-	return clampf(mod, -5.0, 5.0)
+	return {"modifier": clampf(mod, -5.0, 5.0), "event_ids": event_ids}
+
+func _append_event_id(event_ids: Array[String], event_id: String) -> void:
+	if not event_id.is_empty() and not event_id in event_ids:
+		event_ids.append(event_id)
+
+func _mem_event_id(m) -> String:
+	return m.related_event_id if m is MemoryClass else str(m.get("related_event_id", ""))

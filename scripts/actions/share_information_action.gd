@@ -69,6 +69,11 @@ func _apply_effects(context: Dictionary) -> void:
 	metadata["value"] = fact.value
 	metadata["confidence"] = rec_confidence
 
+	state_changes = {
+		"belief_shared": {"subject": fact.subject, "predicate": fact.predicate, "value": fact.value, "confidence": rec_confidence},
+		"relationship_target_to_actor": {"trust": 0.05}
+	}
+
 ## Find the single best external fact the actor could deliberately reveal to target.
 ## Returns null if the actor has nothing worth sharing (target already knows it as
 ## well or better, or the actor holds no qualifying external belief).

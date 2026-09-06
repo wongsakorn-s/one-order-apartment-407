@@ -25,6 +25,17 @@ var status: Status = Status.PENDING
 var failure_reason: String = ""
 var metadata: Dictionary = {}
 
+## TASK-013: Causal Event System.
+## reasons and parent_event_ids are populated externally by SimulationRunner
+## from the UtilityDecision that selected this action (structured contribution
+## breakdown and any memories of past events that swayed the choice), so the
+## resulting SimulationEvent can explain WHY the action was chosen, not just
+## what it did. state_changes is populated by subclasses in _apply_effects()
+## to record the concrete simulation state deltas this action caused.
+var reasons: Dictionary = {}
+var parent_event_ids: Array[String] = []
+var state_changes: Dictionary = {}
+
 func _init(
 	p_id: String = "base_action",
 	p_action_name: String = "Base Action",
@@ -119,7 +130,10 @@ func _create_completion_event(context: Dictionary) -> SimulationEvent:
 		target_id,
 		loc,
 		desc,
-		metadata
+		metadata,
+		parent_event_ids,
+		reasons,
+		state_changes
 	)
 
 ## Return a human-readable description of this action for logging and UI.
@@ -158,7 +172,9 @@ func to_dict() -> Dictionary:
 		"status": status,
 		"status_name": _get_status_name(),
 		"failure_reason": failure_reason,
-		"description": get_readable_description()
+		"description": get_readable_description(),
+		"reasons": reasons.duplicate(true),
+		"parent_event_ids": parent_event_ids.duplicate()
 	}
 
 func _get_status_name() -> String:
