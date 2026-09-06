@@ -20,6 +20,7 @@ const GiveItemActionClass = preload("res://scripts/actions/give_item_action.gd")
 const FleeActionClass = preload("res://scripts/actions/flee_action.gd")
 const ConfrontActionClass = preload("res://scripts/actions/confront_action.gd")
 const UtilityDecisionClass = preload("res://scripts/ai/utility_decision.gd")
+const MemoryClass = preload("res://scripts/characters/memory.gd")
 
 ## Primary entry point: Generates, scores, and selects an action for actor.
 func decide_action(actor: CharacterState, context: Dictionary) -> UtilityDecision:
@@ -130,6 +131,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 	var need_mod: float = 0.0
 	var emotional_mod: float = 0.0
 	var relationship_mod: float = 0.0
+	var memory_mod: float = 0.0
 	var controlled_noise: float = 0.0
 	var risk: float = 0.0
 	var base_score: float = 0.0
@@ -280,7 +282,9 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		if belief_dir != null and belief_dir.has_method("modify_interpretation"):
 			belief_mod = belief_dir.modify_interpretation(actor, action, context)
 
-	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
+	memory_mod = _evaluate_memory_modifier(actor, action, context)
+
+	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + memory_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
 
 	var reasons_dict: Dictionary = {
 		"base": base_score,
@@ -289,6 +293,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		"need": need_mod,
 		"emotion": emotional_mod,
 		"relationship": relationship_mod,
+		"memory": memory_mod,
 		"noise": controlled_noise,
 		"risk": -risk
 	}
@@ -414,3 +419,85 @@ func _format_explanation(action: BaseAction, total: float, reasons: Dictionary) 
 		if absf(v) >= 0.05:
 			parts.append("%s: %+.2f" % [k, v])
 	return "%s (Score: %.2f) [%s]" % [desc, total, ", ".join(parts)]
+
+func _evaluate_memory_modifier(actor: CharacterState, action: BaseAction, context: Dictionary) -> float:
+	if actor == null or actor.memories.is_empty():
+		return 0.0
+
+	var mod: float = 0.0
+	var target_id: String = action.target_id
+	var characters: Dictionary = context.get("characters", {})
+
+	match action.id:
+		"help":
+			if not target_id.is_empty():
+				for m in actor.memories:
+					var m_event: String = m.event_type if m is MemoryClass else str(m.get("event_type", ""))
+					var m_parts: Array = m.participants if m is MemoryClass else m.get("participants", [])
+					var m_actor: String = (m.facts.get("actor", "") if (m is MemoryClass and not m.facts.is_empty()) else "") if m is MemoryClass else m.get("facts", {}).get("actor", "")
+					var impact: float = m.emotional_impact if m is MemoryClass else float(m.get("emotional_impact", 0.0))
+					var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+
+					# If target previously helped or gifted actor
+					if (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
+						if impact > 0.0:
+							mod += imp * impact * 2.5
+					# If target previously harmed or confronted actor
+					elif (m_event in ["confront", "take_item", "refuse"]) and (m_actor == target_id or target_id in m_parts):
+						if impact < 0.0:
+							mod -= imp * absf(impact) * 1.5
+
+		"confront":
+			if not target_id.is_empty():
+				for m in actor.memories:
+					var m_event: String = m.event_type if m is MemoryClass else str(m.get("event_type", ""))
+					var m_parts: Array = m.participants if m is MemoryClass else m.get("participants", [])
+					var m_actor: String = (m.facts.get("actor", "") if (m is MemoryClass and not m.facts.is_empty()) else "") if m is MemoryClass else m.get("facts", {}).get("actor", "")
+					var impact: float = m.emotional_impact if m is MemoryClass else float(m.get("emotional_impact", 0.0))
+					var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+
+					# Grievances: target confronted, refused, or stole from actor
+					if (m_event in ["confront", "refuse", "take_item"]) and (m_actor == target_id or target_id in m_parts):
+						if impact < 0.0:
+							mod += imp * absf(impact) * 2.2
+					# Benefactor memory reduces confrontation desire
+					elif (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
+						if impact > 0.0:
+							mod -= imp * impact * 1.8
+
+		"refuse":
+			if not target_id.is_empty():
+				for m in actor.memories:
+					var m_event: String = m.event_type if m is MemoryClass else str(m.get("event_type", ""))
+					var m_parts: Array = m.participants if m is MemoryClass else m.get("participants", [])
+					var m_actor: String = (m.facts.get("actor", "") if (m is MemoryClass and not m.facts.is_empty()) else "") if m is MemoryClass else m.get("facts", {}).get("actor", "")
+					var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+
+					if (m_event in ["confront", "refuse", "take_item"]) and (m_actor == target_id or target_id in m_parts):
+						mod += imp * 1.5
+					elif (m_event in ["help", "give_item"]) and (m_actor == target_id or target_id in m_parts):
+						mod -= imp * 1.8
+
+		"talk":
+			if not target_id.is_empty():
+				for m in actor.memories:
+					var m_parts: Array = m.participants if m is MemoryClass else m.get("participants", [])
+					if target_id in m_parts:
+						var impact: float = m.emotional_impact if m is MemoryClass else float(m.get("emotional_impact", 0.0))
+						var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+						mod += imp * impact * 1.2
+
+		"flee":
+			# Fleeing instinct triggered if co-located with someone who previously confronted actor
+			for other_id in characters.keys():
+				if other_id != actor.id:
+					var other = characters[other_id] as CharacterState
+					if other != null and other.current_location == actor.current_location:
+						for m in actor.memories:
+							var m_event: String = m.event_type if m is MemoryClass else str(m.get("event_type", ""))
+							var m_parts: Array = m.participants if m is MemoryClass else m.get("participants", [])
+							if m_event in ["confront", "take_item"] and other_id in m_parts:
+								var imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+								mod += imp * 2.0
+
+	return clampf(mod, -5.0, 5.0)

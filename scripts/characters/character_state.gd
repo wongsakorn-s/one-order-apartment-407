@@ -39,6 +39,9 @@ var current_location: String = ""
 
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const RelationshipClass = preload("res://scripts/characters/relationship.gd")
+const MemoryClass = preload("res://scripts/characters/memory.gd")
+
+const MAX_MEMORIES: int = 30
 
 var personality: Dictionary = {}
 var needs: Dictionary = {}
@@ -138,6 +141,67 @@ func get_relationship_value(other_id: String, metric: String) -> float:
 	var rel: Relationship = get_relationship(other_id)
 	return rel.get_value(metric)
 
+## Memory management methods
+func add_memory(memory: Memory) -> void:
+	if memory == null:
+		return
+
+	# If at capacity, evict the lowest-importance memory (oldest if tied)
+	if memories.size() >= MAX_MEMORIES:
+		var lowest_idx: int = -1
+		var lowest_imp: float = 999.0
+		var oldest_time: float = 999999999.0
+
+		for i in range(memories.size()):
+			var m = memories[i]
+			var m_imp: float = m.importance if m is MemoryClass else float(m.get("importance", 0.5))
+			var m_time: float = m.timestamp if m is MemoryClass else float(m.get("timestamp", 0.0))
+
+			if m_imp < lowest_imp:
+				lowest_imp = m_imp
+				oldest_time = m_time
+				lowest_idx = i
+			elif is_equal_approx(m_imp, lowest_imp) and m_time < oldest_time:
+				oldest_time = m_time
+				lowest_idx = i
+
+		# If the new memory has lower importance than existing lowest, drop it
+		if memory.importance < lowest_imp:
+			return
+
+		if lowest_idx >= 0:
+			memories.remove_at(lowest_idx)
+
+	memories.append(memory)
+
+func get_memories() -> Array:
+	return memories
+
+func get_memory_count() -> int:
+	return memories.size()
+
+func get_memories_about(char_id: String) -> Array:
+	var result: Array = []
+	for m in memories:
+		if m is MemoryClass:
+			if m.involves_character(char_id):
+				result.append(m)
+		elif m is Dictionary:
+			var parts = m.get("participants", [])
+			if char_id in parts:
+				result.append(m)
+	return result
+
+func has_memory_of_type(type: String) -> bool:
+	for m in memories:
+		var m_type: String = m.event_type if m is MemoryClass else str(m.get("event_type", ""))
+		if m_type == type:
+			return true
+	return false
+
+func clear_memories() -> void:
+	memories.clear()
+
 ## Assign an active action to the character.
 func set_active_action(action: BaseAction) -> void:
 	active_action = action
@@ -186,6 +250,15 @@ func to_dict() -> Dictionary:
 		else:
 			serialized_relationships[target_id] = rel
 
+	var serialized_memories: Array = []
+	for m in memories:
+		if m is MemoryClass or (m != null and m.has_method("to_dict")):
+			serialized_memories.append(m.to_dict())
+		elif m is Dictionary:
+			serialized_memories.append(m.duplicate())
+		else:
+			serialized_memories.append(m)
+
 	return {
 		"id": id,
 		"name": name,
@@ -196,7 +269,7 @@ func to_dict() -> Dictionary:
 		"emotions": emotions.duplicate(),
 		"inventory": inventory.duplicate(),
 		"goals": goals.duplicate(),
-		"memories": memories.duplicate(),
+		"memories": serialized_memories,
 		"beliefs": beliefs.duplicate(),
 		"relationships": serialized_relationships,
 		"current_action": current_action.duplicate(),
@@ -257,6 +330,19 @@ func get_debug_summary() -> String:
 				lines.append("  -> %s: %s" % [target_id, rel.get_summary()])
 			elif rel is Dictionary:
 				lines.append("  -> %s: %s" % [target_id, str(rel)])
+
+	lines.append("\n[Memories (%d/%d)]" % [memories.size(), MAX_MEMORIES])
+	if memories.is_empty():
+		lines.append("  (None)")
+	else:
+		var recent_count: int = mini(memories.size(), 8)
+		var start_idx: int = memories.size() - recent_count
+		for i in range(memories.size() - 1, start_idx - 1, -1):
+			var m = memories[i]
+			if m is MemoryClass or (m != null and m.has_method("get_summary")):
+				lines.append("  * %s" % m.get_summary())
+			elif m is Dictionary:
+				lines.append("  * %s" % str(m))
 
 	lines.append("\n[Inventory]: %s" % str(inventory))
 	lines.append("[Goals]:")

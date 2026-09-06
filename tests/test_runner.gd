@@ -14,10 +14,11 @@ const TestActionsScript = preload("res://tests/test_actions.gd")
 const TestUtilityAIScript = preload("res://tests/test_utility_ai.gd")
 const TestPlayerDirectivesScript = preload("res://tests/test_player_directives.gd")
 const TestRelationshipsScript = preload("res://tests/test_relationships.gd")
+const TestMemoriesScript = preload("res://tests/test_memories.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-008")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-009")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -126,6 +127,17 @@ func _init() -> void:
 	print("\n[SUITE] TestRelationships:")
 	var rel_results: Array[Dictionary] = TestRelationshipsScript.run_all()
 	for res in rel_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 11. Memories Tests (TASK-009)
+	print("\n[SUITE] TestMemories:")
+	var mem_results: Array[Dictionary] = TestMemoriesScript.run_all()
+	for res in mem_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1

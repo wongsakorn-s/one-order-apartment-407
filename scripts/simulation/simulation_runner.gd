@@ -20,6 +20,7 @@ const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const UtilityAIClass = preload("res://scripts/ai/utility_ai.gd")
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
 const RelationshipGeneratorClass = preload("res://scripts/generation/relationship_generator.gd")
+const MemoryClass = preload("res://scripts/characters/memory.gd")
 
 @export var initial_seed: int = 12345
 
@@ -163,6 +164,20 @@ func _tick_simulation(sim_delta: float) -> void:
 	if any_state_changed:
 		characters_updated.emit()
 
+const EVENT_IMPORTANCE: Dictionary = {
+	"confront": 0.85,
+	"take_item": 0.80,
+	"help": 0.70,
+	"give_item": 0.65,
+	"refuse": 0.60,
+	"flee": 0.60,
+	"investigate": 0.45,
+	"talk": 0.35,
+	"move_to": 0.20,
+	"rest": 0.15,
+	"idle": 0.05
+}
+
 func _record_event(evt: SimulationEvent) -> void:
 	if evt == null:
 		return
@@ -170,7 +185,119 @@ func _record_event(evt: SimulationEvent) -> void:
 	_events.append(evt_dict)
 	if _events.size() > 200:
 		_events.pop_front()
+
+	_distribute_event_memory(evt)
 	event_emitted.emit(evt_dict)
+
+func _distribute_event_memory(evt: SimulationEvent) -> void:
+	if evt == null or _characters.is_empty():
+		return
+
+	var base_importance: float = EVENT_IMPORTANCE.get(evt.event_type, 0.40)
+	if evt.event_type == "investigate" and evt.location_id == "room_407":
+		base_importance = 0.75
+
+	# Do not store trivial events below threshold to prevent cluttering capacity
+	if base_importance < 0.25:
+		return
+
+	var participants: Array[String] = []
+	if not evt.actor_id.is_empty():
+		participants.append(evt.actor_id)
+	if not evt.target_id.is_empty() and evt.target_id != evt.actor_id and _characters.has(evt.target_id):
+		participants.append(evt.target_id)
+
+	for char_id in _characters.keys():
+		var character = _characters[char_id] as CharacterState
+		if character == null:
+			continue
+
+		var is_actor: bool = (character.id == evt.actor_id)
+		var is_target: bool = (character.id == evt.target_id)
+		var is_present: bool = (character.current_location == evt.location_id)
+
+		# Characters do NOT automatically remember events they did not observe
+		if not (is_actor or is_target or is_present):
+			continue
+
+		var emotional_impact: float = _calculate_emotional_impact(evt, character, is_actor, is_target)
+		var importance: float = base_importance
+
+		if is_actor or is_target:
+			importance = clampf(importance + 0.10, 0.0, 1.0)
+		else:
+			importance = clampf(importance - 0.10, 0.0, 1.0)
+
+		var memory_id: String = "mem_%s_%d" % [character.id, character.get_memory_count() + 1]
+		var facts: Dictionary = {
+			"event_type": evt.event_type,
+			"actor": evt.actor_id,
+			"target": evt.target_id,
+			"location": evt.location_id,
+			"is_actor": is_actor,
+			"is_target": is_target
+		}
+		if evt.metadata.has("item_name"):
+			facts["item"] = evt.metadata["item_name"]
+
+		var memory = MemoryClass.new(
+			memory_id,
+			evt.timestamp,
+			evt.event_type,
+			participants,
+			evt.location_id,
+			importance,
+			emotional_impact,
+			evt.id,
+			facts,
+			evt.description
+		)
+		character.add_memory(memory)
+
+func _calculate_emotional_impact(evt: SimulationEvent, _character: CharacterState, is_actor: bool, is_target: bool) -> float:
+	match evt.event_type:
+		"help":
+			if is_target:
+				return 0.70
+			elif is_actor:
+				return 0.35
+			else:
+				return 0.20
+		"confront":
+			if is_target:
+				return -0.80
+			elif is_actor:
+				return 0.20
+			else:
+				return -0.40
+		"refuse":
+			if is_target:
+				return -0.50
+			elif is_actor:
+				return -0.10
+			else:
+				return -0.15
+		"talk":
+			return 0.25
+		"give_item":
+			if is_target:
+				return 0.65
+			elif is_actor:
+				return 0.30
+			else:
+				return 0.15
+		"take_item":
+			if is_target:
+				return -0.80
+			elif is_actor:
+				return 0.40
+			else:
+				return -0.30
+		"flee":
+			return -0.40
+		"investigate":
+			return 0.10
+	return 0.0
 
 func get_events() -> Array[Dictionary]:
 	return _events
