@@ -55,6 +55,78 @@ func _apply_effects(context: Dictionary) -> void:
 		target.modify_relationship(actor_id, "trust", 0.04)
 		target.modify_relationship(actor_id, "suspicion", -0.03)
 
+		# Mutual information exchange during conversation
+		var sim_time: float = float(context.get("sim_time", 0.0))
+		_exchange_information(actor, target, sim_time)
+
+func _exchange_information(char_a: CharacterState, char_b: CharacterState, sim_time: float) -> void:
+	_share_belief(char_a, char_b, sim_time)
+	_share_belief(char_b, char_a, sim_time)
+
+func _share_belief(speaker: CharacterState, listener: CharacterState, sim_time: float) -> void:
+	if speaker == null or listener == null:
+		return
+
+	var candidates: Array = []
+	for b in speaker.get_beliefs():
+		if b.source == listener.id or b.confidence < 0.3:
+			continue
+		# Skip telling the co-located listener where the speaker is right now
+		if b.subject == speaker.id and b.predicate == "location":
+			continue
+
+		# Prioritize facts that listener doesn't already know with equal or higher confidence
+		var listener_b = listener.get_belief(b.subject, b.predicate)
+		if listener_b != null and listener_b.confidence >= b.confidence:
+			continue
+		candidates.append(b)
+
+	# If all beliefs are already known to listener, fall back to any eligible belief
+	if candidates.is_empty():
+		for b in speaker.get_beliefs():
+			if b.source != listener.id and b.confidence >= 0.3:
+				if not (b.subject == speaker.id and b.predicate == "location"):
+					candidates.append(b)
+
+	if candidates.is_empty():
+		return
+
+	# Prioritize external knowledge (other characters, rooms, rumors) over self-facts, then sort by confidence
+	candidates.sort_custom(func(a, b):
+		var a_is_ext: bool = (a.subject != speaker.id)
+		var b_is_ext: bool = (b.subject != speaker.id)
+		if a_is_ext != b_is_ext:
+			return a_is_ext
+		return a.confidence > b.confidence
+	)
+	var fact_to_share = candidates[0]
+
+	var trust: float = listener.get_relationship_value(speaker.id, "trust")
+	var suspicion: float = listener.get_relationship_value(speaker.id, "suspicion")
+
+	# Trust directly scales confidence; suspicion dampens it
+	var rec_confidence: float = clampf(fact_to_share.confidence * trust * (1.0 - suspicion * 0.4), 0.05, 1.0)
+
+	listener.receive_belief(
+		fact_to_share.subject,
+		fact_to_share.predicate,
+		fact_to_share.value,
+		rec_confidence,
+		speaker.id,
+		sim_time
+	)
+
+	if not metadata.has("shared_facts"):
+		metadata["shared_facts"] = []
+	metadata["shared_facts"].append({
+		"from": speaker.id,
+		"to": listener.id,
+		"subject": fact_to_share.subject,
+		"predicate": fact_to_share.predicate,
+		"value": fact_to_share.value,
+		"confidence": rec_confidence
+	})
+
 func get_readable_description(context: Dictionary = {}) -> String:
 	var characters: Dictionary = context.get("characters", {})
 	var actor = characters.get(actor_id, null)

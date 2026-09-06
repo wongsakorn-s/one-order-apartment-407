@@ -366,22 +366,48 @@ func _evaluate_movement_goal(actor: CharacterState, neighbor_id: String, world_g
 
 		# 2. Meet character goal
 		elif g_type in ["meet_character", "repair_relationship"] and not g_target.is_empty():
-			var target_char = characters.get(g_target, null) as CharacterState
-			if target_char != null:
-				var dist_cur: int = world_graph.get_distance(actor.current_location, target_char.current_location)
-				var dist_next: int = world_graph.get_distance(neighbor_id, target_char.current_location)
+			# Rely on subjective Belief regarding target's location instead of global truth
+			var believed_loc: String = ""
+			if actor.has_method("get_belief_value"):
+				var loc_val = actor.get_belief_value(g_target, "location", null)
+				if loc_val != null and str(loc_val) != "":
+					believed_loc = str(loc_val)
+				else:
+					var default_val = actor.get_belief_value(g_target, "default_room", null)
+					if default_val != null and str(default_val) != "":
+						believed_loc = str(default_val)
+
+			if not believed_loc.is_empty():
+				var dist_cur: int = world_graph.get_distance(actor.current_location, believed_loc)
+				var dist_next: int = world_graph.get_distance(neighbor_id, believed_loc)
 				if dist_next < dist_cur and dist_cur >= 0:
 					move_score += priority_weight
 				elif dist_next > dist_cur:
 					move_score -= priority_weight * 0.5
+			else:
+				# If character location is unknown, actor searches communal exploratory spaces
+				if neighbor_id in ["lobby", "hallway_1", "hallway_2", "laundry_room"]:
+					move_score += priority_weight * 0.4
 
 		# 3. Avoid character goal
 		elif g_type == "avoid_character" and not g_target.is_empty():
-			var target_char = characters.get(g_target, null) as CharacterState
-			if target_char != null:
-				if neighbor_id == target_char.current_location:
+			# Rely on subjective Belief regarding target's location instead of global truth
+			var avoid_loc: String = ""
+			if actor.has_method("get_belief_value"):
+				var loc_val = actor.get_belief_value(g_target, "location", null)
+				if loc_val != null and str(loc_val) != "":
+					avoid_loc = str(loc_val)
+
+			# If actor directly perceives target in current room, recognize it
+			if avoid_loc.is_empty():
+				var target_char = characters.get(g_target, null) as CharacterState
+				if target_char != null and target_char.current_location == actor.current_location:
+					avoid_loc = actor.current_location
+
+			if not avoid_loc.is_empty():
+				if neighbor_id == avoid_loc:
 					move_score -= 3.5
-				elif actor.current_location == target_char.current_location:
+				elif actor.current_location == avoid_loc:
 					move_score += 2.5
 
 	return move_score

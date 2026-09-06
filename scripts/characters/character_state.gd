@@ -40,6 +40,7 @@ var current_location: String = ""
 const BaseActionClass = preload("res://scripts/actions/base_action.gd")
 const RelationshipClass = preload("res://scripts/characters/relationship.gd")
 const MemoryClass = preload("res://scripts/characters/memory.gd")
+const BeliefClass = preload("res://scripts/characters/belief.gd")
 
 const MAX_MEMORIES: int = 30
 
@@ -202,6 +203,76 @@ func has_memory_of_type(type: String) -> bool:
 func clear_memories() -> void:
 	memories.clear()
 
+## Belief and Knowledge management methods
+func set_belief(subject: String, predicate: String, value: Variant, confidence: float = 1.0, source: String = "self", timestamp: float = 0.0) -> Belief:
+	var key: String = "%s:%s" % [subject, predicate]
+	var belief = BeliefClass.new(subject, predicate, value, confidence, source, timestamp)
+	beliefs[key] = belief
+	return belief
+
+func add_belief(belief: Belief) -> void:
+	if belief != null:
+		beliefs[belief.get_key()] = belief
+
+func get_belief(subject: String, predicate: String) -> Belief:
+	var key: String = "%s:%s" % [subject, predicate]
+	if beliefs.has(key):
+		var b = beliefs[key]
+		if b is BeliefClass:
+			return b
+		elif b is Dictionary:
+			var restored = BeliefClass.new()
+			restored.from_dict(b)
+			beliefs[key] = restored
+			return restored
+	return null
+
+func get_belief_value(subject: String, predicate: String, default_val: Variant = null) -> Variant:
+	var b: Belief = get_belief(subject, predicate)
+	if b != null:
+		return b.value
+	return default_val
+
+func has_belief(subject: String, predicate: String) -> bool:
+	var key: String = "%s:%s" % [subject, predicate]
+	return beliefs.has(key)
+
+func get_beliefs() -> Array[Belief]:
+	var list: Array[Belief] = []
+	for k in beliefs.keys():
+		var parts = k.split(":")
+		if parts.size() >= 2:
+			var b = get_belief(parts[0], parts[1])
+			if b != null:
+				list.append(b)
+	return list
+
+func get_beliefs_about(subject: String) -> Array[Belief]:
+	var list: Array[Belief] = []
+	for b in get_beliefs():
+		if b.subject == subject:
+			list.append(b)
+	return list
+
+func receive_belief(subject: String, predicate: String, value: Variant, confidence: float, from_char_id: String, timestamp: float) -> void:
+	var existing: Belief = get_belief(subject, predicate)
+	if existing == null:
+		set_belief(subject, predicate, value, confidence, from_char_id, timestamp)
+	else:
+		# If received info has higher confidence than existing belief, update it
+		if confidence > existing.confidence:
+			existing.value = value
+			existing.confidence = confidence
+			existing.source = from_char_id
+			existing.timestamp = timestamp
+		# If same value, reinforce confidence slightly
+		elif str(existing.value) == str(value):
+			existing.confidence = minf(1.0, existing.confidence + 0.15)
+			existing.timestamp = timestamp
+		# If conflicting value from less trusted source, discount confidence slightly
+		else:
+			existing.confidence = maxf(0.1, existing.confidence - 0.10)
+
 ## Assign an active action to the character.
 func set_active_action(action: BaseAction) -> void:
 	active_action = action
@@ -259,6 +330,16 @@ func to_dict() -> Dictionary:
 		else:
 			serialized_memories.append(m)
 
+	var serialized_beliefs: Dictionary = {}
+	for k in beliefs:
+		var b = beliefs[k]
+		if b is BeliefClass or (b != null and b.has_method("to_dict")):
+			serialized_beliefs[k] = b.to_dict()
+		elif b is Dictionary:
+			serialized_beliefs[k] = b.duplicate()
+		else:
+			serialized_beliefs[k] = b
+
 	return {
 		"id": id,
 		"name": name,
@@ -270,7 +351,7 @@ func to_dict() -> Dictionary:
 		"inventory": inventory.duplicate(),
 		"goals": goals.duplicate(),
 		"memories": serialized_memories,
-		"beliefs": beliefs.duplicate(),
+		"beliefs": serialized_beliefs,
 		"relationships": serialized_relationships,
 		"current_action": current_action.duplicate(),
 		"last_decision": last_decision.duplicate(true),
@@ -343,6 +424,15 @@ func get_debug_summary() -> String:
 				lines.append("  * %s" % m.get_summary())
 			elif m is Dictionary:
 				lines.append("  * %s" % str(m))
+
+	var all_beliefs: Array[Belief] = get_beliefs()
+	lines.append("\n[Beliefs & Knowledge (%d)]" % all_beliefs.size())
+	if all_beliefs.is_empty():
+		lines.append("  (None)")
+	else:
+		var belief_count: int = mini(all_beliefs.size(), 8)
+		for i in range(belief_count):
+			lines.append("  * %s" % all_beliefs[i].get_summary())
 
 	lines.append("\n[Inventory]: %s" % str(inventory))
 	lines.append("[Goals]:")

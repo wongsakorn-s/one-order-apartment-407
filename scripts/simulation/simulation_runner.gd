@@ -97,6 +97,9 @@ func spawn_initial_characters() -> void:
 	var rel_gen = RelationshipGeneratorClass.new()
 	rel_gen.generate_initial_relationships(random_service, get_all_characters())
 
+	# 4. Seed initial subjective knowledge and beliefs
+	_seed_initial_knowledge()
+
 	# Print generated roster for debug visibility
 	NPCGeneratorClass.print_generated_roster(get_seed(), get_all_characters())
 
@@ -187,6 +190,7 @@ func _record_event(evt: SimulationEvent) -> void:
 		_events.pop_front()
 
 	_distribute_event_memory(evt)
+	_distribute_event_knowledge(evt)
 	event_emitted.emit(evt_dict)
 
 func _distribute_event_memory(evt: SimulationEvent) -> void:
@@ -298,6 +302,59 @@ func _calculate_emotional_impact(evt: SimulationEvent, _character: CharacterStat
 		"investigate":
 			return 0.10
 	return 0.0
+
+func _seed_initial_knowledge() -> void:
+	for c in get_all_characters():
+		c.set_belief(c.id, "location", c.current_location, 1.0, "self", 0.0)
+		c.set_belief(c.id, "default_room", c.current_location, 1.0, "self", 0.0)
+
+	var protagonist = get_protagonist()
+	if protagonist != null:
+		protagonist.set_belief("room_407", "status", "locked", 0.95, "self", 0.0)
+
+	var elena = get_character("npc_elena")
+	if elena != null:
+		for c in get_all_characters():
+			if c.id != elena.id:
+				elena.set_belief(c.id, "default_room", c.current_location, 1.0, "self", 0.0)
+
+func _distribute_event_knowledge(evt: SimulationEvent) -> void:
+	if evt == null or _characters.is_empty():
+		return
+
+	for char_id in _characters.keys():
+		var character = _characters[char_id] as CharacterState
+		if character == null:
+			continue
+
+		var is_actor: bool = (character.id == evt.actor_id)
+		var is_target: bool = (character.id == evt.target_id)
+		var is_present: bool = (character.current_location == evt.location_id)
+
+		# Characters do NOT gain knowledge of unobserved events
+		if not (is_actor or is_target or is_present):
+			continue
+
+		# Direct observation produces high-confidence knowledge (confidence = 1.0, source = "self")
+		if not evt.actor_id.is_empty():
+			character.set_belief(evt.actor_id, "location", evt.location_id, 1.0, "self", evt.timestamp)
+			character.set_belief(evt.actor_id, "last_action", evt.event_type, 1.0, "self", evt.timestamp)
+
+		if not evt.target_id.is_empty() and _characters.has(evt.target_id):
+			character.set_belief(evt.target_id, "location", evt.location_id, 1.0, "self", evt.timestamp)
+
+		match evt.event_type:
+			"take_item":
+				var item = evt.metadata.get("item_name", evt.target_id)
+				character.set_belief(evt.actor_id, "has_item", item, 1.0, "self", evt.timestamp)
+			"give_item":
+				var item = evt.metadata.get("item_name", "")
+				if not item.is_empty():
+					character.set_belief(evt.target_id, "has_item", item, 1.0, "self", evt.timestamp)
+			"confront":
+				character.set_belief(evt.actor_id, "hostile_towards", evt.target_id, 1.0, "self", evt.timestamp)
+			"help":
+				character.set_belief(evt.actor_id, "helped", evt.target_id, 1.0, "self", evt.timestamp)
 
 func get_events() -> Array[Dictionary]:
 	return _events
