@@ -2,3 +2,8 @@
 .godot/
 *.translation
 
+# OS / Editor temporary files
+*.tmp
+Thumbs.db
+desktop.ini
+
