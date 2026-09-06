@@ -150,6 +150,17 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 	if rng != null:
 		controlled_noise = (rng.rand_float() - 0.5) * 0.3
 
+	# TASK-019: variety pressure. Repeating the exact same action type the
+	# actor just completed is deliberately discouraged (a deterministic,
+	# explainable "I just did that" bias, not RNG) so a strong early lead for
+	# one action (e.g. talk/help feeding off ever-rising trust/debt) doesn't
+	# snowball into that action dominating the whole run. Idle/rest are exempt
+	# since repeated rest/idling is expected physiological behavior, not a
+	# repetitive-story problem.
+	var repetition_mod: float = 0.0
+	if not (action.id in ["idle", "rest"]) and actor.current_action.get("id", "") == action.id:
+		repetition_mod = -2.0
+
 	# Action-specific evaluation
 	match action.id:
 		"idle":
@@ -166,10 +177,12 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			goal_relevance = _evaluate_goal_match(actor, "rest", "")
 
 		"investigate":
-			base_score = 0.5
+			# TASK-019: raised base/personality weight -- investigate was
+			# badly under-represented (10% of NPC actions) next to talk/help.
+			base_score = 0.65
 			var curiosity: float = actor.get_personality_trait("curiosity")
 			var fear: float = actor.get_personality_trait("fear")
-			personality_mod = (curiosity - 0.5) * 2.6 - (fear - 0.5) * 0.8
+			personality_mod = (curiosity - 0.5) * 3.0 - (fear - 0.5) * 0.8
 			need_mod = (1.0 - actor.get_need("information")) * 1.8
 			emotional_mod = actor.get_emotion("fear") * -1.0
 
@@ -181,9 +194,12 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 				goal_relevance = _evaluate_goal_match(actor, "investigate_location", action.target_id)
 
 		"move_to":
-			base_score = 0.6
+			# TASK-019: raised base/curiosity weight -- NPCs almost never
+			# relocated (2% of actions), clustering the same small groups
+			# together for the whole night instead of circulating.
+			base_score = 0.75
 			var target_loc: String = action.target_id
-			personality_mod = (actor.get_personality_trait("curiosity") - 0.5) * 0.8
+			personality_mod = (actor.get_personality_trait("curiosity") - 0.5) * 1.4
 
 			# Goal navigation
 			goal_relevance = _evaluate_movement_goal(actor, target_loc, world_graph, characters)
@@ -218,22 +234,30 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 				relationship_mod = max_co_fear * 2.5
 
 		"talk":
-			base_score = 0.8
+			# TASK-019: talk was overwhelmingly dominant (41% of all NPC
+			# actions). Lowered base score and relationship coefficient so
+			# rising trust from repeated talk doesn't snowball into talk
+			# always winning; personality/need influence kept meaningful.
+			base_score = 0.5
 			var sociability: float = actor.get_personality_trait("sociability")
 			var empathy: float = actor.get_personality_trait("empathy")
 			personality_mod = (sociability - 0.5) * 2.2 + (empathy - 0.5) * 1.0
-			need_mod = (1.0 - actor.get_need("social")) * 2.2 + (1.0 - actor.get_need("information")) * 1.0
-			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5 - _get_relationship_value(actor, action.target_id, "suspicion") * 0.8 - _get_relationship_value(actor, action.target_id, "fear") * 0.6 + _get_relationship_value(actor, action.target_id, "attraction") * 0.5
+			need_mod = (1.0 - actor.get_need("social")) * 1.6 + (1.0 - actor.get_need("information")) * 1.0
+			relationship_mod = minf(_get_relationship_value(actor, action.target_id, "trust"), 0.7) * 1.0 - _get_relationship_value(actor, action.target_id, "suspicion") * 0.8 - _get_relationship_value(actor, action.target_id, "fear") * 0.6 + _get_relationship_value(actor, action.target_id, "attraction") * 0.5
 			emotional_mod = actor.get_emotion("happiness") * 0.8 - actor.get_emotion("anger") * 1.5
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["meet_character", "repair_relationship"])
 
 		"help":
-			base_score = 0.3
+			# TASK-019: debt/trust coefficients lowered and soft-capped --
+			# debt in particular only ever grows from being helped, so
+			# uncapped it made help snowball into a self-reinforcing loop
+			# between the same pair once trust/debt approached 1.0.
+			base_score = 0.15
 			var empathy: float = actor.get_personality_trait("empathy")
 			var greed: float = actor.get_personality_trait("greed")
 			personality_mod = (empathy - 0.5) * 3.2 - (greed - 0.5) * 1.6
 			emotional_mod = actor.get_emotion("happiness") * 1.2 - actor.get_emotion("anger") * 2.5
-			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.8 + _get_relationship_value(actor, action.target_id, "debt") * 2.0
+			relationship_mod = minf(_get_relationship_value(actor, action.target_id, "trust"), 0.7) * 0.8 + minf(_get_relationship_value(actor, action.target_id, "debt"), 0.7) * 0.9
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
 
 		"confront":
@@ -322,7 +346,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 	var contributing_event_ids: Array[String] = []
 	contributing_event_ids.assign(memory_eval.get("event_ids", []))
 
-	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + memory_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
+	var total_score: float = base_score + goal_relevance + personality_mod + need_mod + emotional_mod + relationship_mod + memory_mod + repetition_mod + controlled_noise + want_mod + never_mod + belief_mod - risk
 
 	var reasons_dict: Dictionary = {
 		"base": base_score,
@@ -332,6 +356,7 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 		"emotion": emotional_mod,
 		"relationship": relationship_mod,
 		"memory": memory_mod,
+		"repetition": repetition_mod,
 		"noise": controlled_noise,
 		"risk": -risk
 	}
