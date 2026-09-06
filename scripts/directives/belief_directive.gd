@@ -26,7 +26,7 @@ func modify_interpretation(actor: CharacterState, action: BaseAction, _context: 
 	match id:
 		"everyone_hiding_something":
 			# Increased curiosity and suspicion; favors investigating and questioning
-			if action.id == "investigate":
+			if action.id in ["investigate", "ask_question"]:
 				return 1.5
 			elif action.id == "talk":
 				return 1.0

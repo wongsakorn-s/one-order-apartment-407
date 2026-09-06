@@ -19,6 +19,9 @@ const TakeItemActionClass = preload("res://scripts/actions/take_item_action.gd")
 const GiveItemActionClass = preload("res://scripts/actions/give_item_action.gd")
 const FleeActionClass = preload("res://scripts/actions/flee_action.gd")
 const ConfrontActionClass = preload("res://scripts/actions/confront_action.gd")
+const AskQuestionActionClass = preload("res://scripts/actions/ask_question_action.gd")
+const ShareInformationActionClass = preload("res://scripts/actions/share_information_action.gd")
+const LieActionClass = preload("res://scripts/actions/lie_action.gd")
 const UtilityDecisionClass = preload("res://scripts/ai/utility_decision.gd")
 const MemoryClass = preload("res://scripts/characters/memory.gd")
 
@@ -103,6 +106,9 @@ func generate_candidate_actions(actor: CharacterState, context: Dictionary) -> A
 			list.append(HelpActionClass.new(actor.id, other.id, 8.0))
 			list.append(ConfrontActionClass.new(actor.id, other.id, 8.0))
 			list.append(RefuseActionClass.new(actor.id, other.id, 4.0))
+			list.append(AskQuestionActionClass.new(actor.id, other.id, 6.0))
+			list.append(ShareInformationActionClass.new(actor.id, other.id, 6.0))
+			list.append(LieActionClass.new(actor.id, other.id, 5.0))
 
 			# Item transfers
 			if not actor.inventory.is_empty():
@@ -262,6 +268,31 @@ func score_action(actor: CharacterState, action: BaseAction, context: Dictionary
 			personality_mod = (empathy - 0.5) * 2.5 - (greed - 0.5) * 2.5
 			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.5 + _get_relationship_value(actor, action.target_id, "debt") * 1.2 + _get_relationship_value(actor, action.target_id, "attraction") * 0.8
 			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
+
+		"ask_question":
+			base_score = 0.5
+			var curiosity: float = actor.get_personality_trait("curiosity")
+			personality_mod = (curiosity - 0.5) * 2.0
+			need_mod = (1.0 - actor.get_need("information")) * 2.0
+			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 0.8 - _get_relationship_value(actor, action.target_id, "suspicion") * 0.4
+			goal_relevance = _evaluate_goal_match(actor, "investigate_location", "") * 0.6 + _evaluate_social_goal(actor, action.target_id, ["meet_character", "repair_relationship"]) * 0.5
+
+		"share_information":
+			base_score = 0.3
+			var empathy: float = actor.get_personality_trait("empathy")
+			var sociability: float = actor.get_personality_trait("sociability")
+			personality_mod = (empathy - 0.5) * 2.0 + (sociability - 0.5) * 1.0
+			relationship_mod = _get_relationship_value(actor, action.target_id, "trust") * 1.0 + _get_relationship_value(actor, action.target_id, "attraction") * 0.3
+			goal_relevance = _evaluate_social_goal(actor, action.target_id, ["repair_relationship"])
+
+		"lie":
+			base_score = -0.1
+			var honesty: float = actor.get_personality_trait("honesty")
+			var greed: float = actor.get_personality_trait("greed")
+			personality_mod = (0.5 - honesty) * 3.0 + (greed - 0.5) * 1.0
+			emotional_mod = actor.get_emotion("fear") * 1.0
+			relationship_mod = - _get_relationship_value(actor, action.target_id, "trust") * 1.0 + _get_relationship_value(actor, action.target_id, "suspicion") * 0.5
+			risk = honesty * 0.8
 
 	# Player Directives evaluation (Applied exclusively to the protagonist)
 	var want_mod: float = 0.0
