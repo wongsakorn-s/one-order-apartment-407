@@ -304,6 +304,7 @@ offset_right = -360.0
 offset_bottom = -20.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
 
 [node name="Margin" type="MarginContainer" parent="RootControl/DebugPanel"]
 layout_mode = 2
@@ -355,10 +356,11 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -260.0
-offset_top = -220.0
-offset_right = 260.0
-offset_bottom = 220.0
+offset_left = -340.0
+offset_top = -270.0
+offset_right = 340.0
+offset_bottom = 270.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -393,10 +395,13 @@ layout_mode = 2
 text = "X"
 
 [node name="SetupSubtitle" type="Label" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.75, 0.85, 1)
 theme_override_font_sizes/font_size = 12
-text = "Configure protagonist Alex's mindset for the night."
+autowrap_mode = 3
+text = "Choose one WANT. Choose one NEVER. Choose one BELIEVE.
+Once the simulation starts, you cannot control the character directly — you can only observe."
 
 [node name="HSeparator1" type="HSeparator" parent="RootControl/SetupPanel/SetupMargin/SetupVBox"]
 layout_mode = 2
@@ -624,11 +629,11 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "New Seed"
+text = "New Random Seed"
 
 [node name="RunAgainButton" type="Button" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunButtonsHBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Run Again (Change Directives)"
+text = "Change Directives"

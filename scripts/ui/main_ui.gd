@@ -693,6 +693,18 @@ func _update_directive_descriptions() -> void:
 			if b != null:
 				believe_desc_label.text = "%s: %s" % [b.title, b.description]
 
+## Called once by Main._ready() on real launch (TASK-020): pause before the
+## player has chosen directives and show the setup screen, so the actual
+## play flow matches "choose WANT/NEVER/BELIEVE, then Start Simulation"
+## rather than the simulation already running with default directives.
+func show_initial_setup() -> void:
+	_ensure_node_references()
+	if simulation_runner != null:
+		simulation_runner.set_paused(true)
+	if setup_panel != null:
+		setup_panel.visible = true
+		_sync_directives_ui_from_runner()
+
 func _on_directives_pressed() -> void:
 	_ensure_node_references()
 	if setup_panel != null:
@@ -735,7 +747,7 @@ func _on_start_simulation_pressed() -> void:
 	if setup_panel != null:
 		setup_panel.visible = false
 
-func _on_directives_updated(_want_id: String, _never_id: String, _belief_id: String) -> void:
+func _on_directives_updated(_want_dict: Dictionary, _never_dict: Dictionary, _believe_dict: Dictionary) -> void:
 	_sync_directives_ui_from_runner()
 	if debug_panel != null and debug_panel.visible and character_option_button != null:
 		var selected_idx = character_option_button.selected

@@ -58,8 +58,7 @@ func evaluate_violation(actor: CharacterState, action: BaseAction, _context: Dic
 				}
 
 		"never_lie":
-			# Placeholder for when LieAction is introduced in social tasks; discourages deceptive actions
-			if action.id in ["deceive", "lie"]:
+			if action.id == "lie":
 				return {
 					"is_violating": true,
 					"penalty": -15.0,
