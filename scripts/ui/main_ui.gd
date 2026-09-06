@@ -6,6 +6,7 @@ extends CanvasLayer
 ## Listens to signals from SimulationRunner and sends user commands.
 
 const DirectiveCatalogClass = preload("res://scripts/directives/directive_catalog.gd")
+const RunEvaluatorClass = preload("res://scripts/simulation/run_evaluator.gd")
 
 @export var simulation_runner: SimulationRunner
 
@@ -51,6 +52,18 @@ const MAX_FEED_LINES: int = 100
 @onready var believe_desc_label: Label = %BelieveDescLabel
 @onready var start_simulation_button: Button = %StartSimulationButton
 
+@onready var end_run_panel: PanelContainer = %EndRunPanel
+@onready var end_run_seed_label: Label = %EndRunSeedLabel
+@onready var end_run_directives_text: RichTextLabel = %EndRunDirectivesText
+@onready var end_run_final_state_text: RichTextLabel = %EndRunFinalStateText
+@onready var end_run_relationships_text: RichTextLabel = %EndRunRelationshipsText
+@onready var end_run_secrets_text: RichTextLabel = %EndRunSecretsText
+@onready var end_run_memories_text: RichTextLabel = %EndRunMemoriesText
+@onready var end_run_timeline_text: RichTextLabel = %EndRunTimelineText
+@onready var replay_same_seed_button: Button = %ReplaySameSeedButton
+@onready var new_seed_button: Button = %NewSeedButton
+@onready var run_again_button: Button = %RunAgainButton
+
 func _ready() -> void:
 	_ensure_node_references()
 	if pause_button != null and not pause_button.pressed.is_connected(_on_pause_pressed):
@@ -81,6 +94,13 @@ func _ready() -> void:
 		close_inspect_button.pressed.connect(_on_close_inspect_pressed)
 	if character_option_button != null and not character_option_button.item_selected.is_connected(_on_character_selected):
 		character_option_button.item_selected.connect(_on_character_selected)
+
+	if replay_same_seed_button != null and not replay_same_seed_button.pressed.is_connected(_on_replay_same_seed_pressed):
+		replay_same_seed_button.pressed.connect(_on_replay_same_seed_pressed)
+	if new_seed_button != null and not new_seed_button.pressed.is_connected(_on_new_seed_pressed):
+		new_seed_button.pressed.connect(_on_new_seed_pressed)
+	if run_again_button != null and not run_again_button.pressed.is_connected(_on_run_again_pressed):
+		run_again_button.pressed.connect(_on_run_again_pressed)
 
 	_populate_directives_options()
 
@@ -158,6 +178,29 @@ func _ensure_node_references() -> void:
 		believe_desc_label = get_node_or_null("%BelieveDescLabel") as Label
 	if start_simulation_button == null:
 		start_simulation_button = get_node_or_null("%StartSimulationButton") as Button
+
+	if end_run_panel == null:
+		end_run_panel = get_node_or_null("%EndRunPanel") as PanelContainer
+	if end_run_seed_label == null:
+		end_run_seed_label = get_node_or_null("%EndRunSeedLabel") as Label
+	if end_run_directives_text == null:
+		end_run_directives_text = get_node_or_null("%EndRunDirectivesText") as RichTextLabel
+	if end_run_final_state_text == null:
+		end_run_final_state_text = get_node_or_null("%EndRunFinalStateText") as RichTextLabel
+	if end_run_relationships_text == null:
+		end_run_relationships_text = get_node_or_null("%EndRunRelationshipsText") as RichTextLabel
+	if end_run_secrets_text == null:
+		end_run_secrets_text = get_node_or_null("%EndRunSecretsText") as RichTextLabel
+	if end_run_memories_text == null:
+		end_run_memories_text = get_node_or_null("%EndRunMemoriesText") as RichTextLabel
+	if end_run_timeline_text == null:
+		end_run_timeline_text = get_node_or_null("%EndRunTimelineText") as RichTextLabel
+	if replay_same_seed_button == null:
+		replay_same_seed_button = get_node_or_null("%ReplaySameSeedButton") as Button
+	if new_seed_button == null:
+		new_seed_button = get_node_or_null("%NewSeedButton") as Button
+	if run_again_button == null:
+		run_again_button = get_node_or_null("%RunAgainButton") as Button
 
 func _on_speed_1x_pressed() -> void:
 	_on_speed_pressed(1.0)
@@ -409,6 +452,134 @@ func _on_simulation_completed() -> void:
 		status_label.modulate = Color(1.0, 0.8, 0.2)
 	if pause_button != null:
 		pause_button.disabled = true
+
+	_show_end_run_screen()
+
+## TASK-016: Build and display the end-of-run summary (WANT/NEVER/BELIEVE,
+## major relationships, discovered secrets, memories, and a simple
+## chronological causal timeline) automatically when the run ends at 06:00.
+func _show_end_run_screen() -> void:
+	if simulation_runner == null or end_run_panel == null:
+		return
+
+	var result: Dictionary = RunEvaluatorClass.evaluate(simulation_runner)
+	if result.is_empty():
+		return
+
+	if end_run_seed_label != null:
+		end_run_seed_label.text = "Seed: %d" % simulation_runner.get_seed()
+
+	if end_run_directives_text != null:
+		end_run_directives_text.text = _format_directives_summary(result)
+	if end_run_final_state_text != null:
+		end_run_final_state_text.text = _format_final_state(result.get("protagonist_final_state", {}))
+	if end_run_relationships_text != null:
+		end_run_relationships_text.text = _format_bulleted(result.get("major_relationships", []), "No notable relationships formed.")
+	if end_run_secrets_text != null:
+		end_run_secrets_text.text = _format_secrets(result.get("discovered_secrets", []))
+	if end_run_memories_text != null:
+		end_run_memories_text.text = _format_bulleted(result.get("major_memories", []), "No significant memories formed.")
+	if end_run_timeline_text != null:
+		end_run_timeline_text.text = _format_timeline(result.get("causal_timeline", []))
+
+	end_run_panel.visible = true
+
+func _status_color(status: String) -> String:
+	match status:
+		"success", "respected":
+			return "#66e07a"
+		"partial":
+			return "#e0c766"
+		"failure", "violated":
+			return "#e06666"
+		_:
+			return "#cccccc"
+
+func _format_directives_summary(result: Dictionary) -> String:
+	var want: Dictionary = result.get("want", {})
+	var never: Dictionary = result.get("never", {})
+	var believe: Dictionary = result.get("believe", {})
+
+	var lines: Array[String] = []
+	lines.append("[b]WANT[/b]: %s" % want.get("title", ""))
+	lines.append("[color=%s]%s[/color] — %s" % [_status_color(want.get("status", "")), str(want.get("status", "")).to_upper(), want.get("reason", "")])
+	lines.append("")
+	lines.append("[b]NEVER[/b]: %s" % never.get("title", ""))
+	lines.append("[color=%s]%s[/color]" % [_status_color(never.get("status", "")), str(never.get("status", "")).to_upper()])
+	lines.append("")
+	lines.append("[b]BELIEVE[/b]: %s" % believe.get("title", ""))
+	lines.append(believe.get("summary", ""))
+	return "\n".join(lines)
+
+func _format_final_state(state: Dictionary) -> String:
+	if state.is_empty():
+		return "-"
+	var emotions: Dictionary = state.get("emotions", {})
+	var lines: Array[String] = []
+	lines.append("%s ended the night in %s." % [state.get("name", ""), str(state.get("location", "")).capitalize()])
+	lines.append("Happy %.2f | Fear %.2f | Anger %.2f | Stress %.2f" % [
+		emotions.get("happiness", 0.0), emotions.get("fear", 0.0), emotions.get("anger", 0.0), emotions.get("stress", 0.0)
+	])
+	var inv: Array = state.get("inventory", [])
+	lines.append("Inventory: %s" % (", ".join(inv) if not inv.is_empty() else "(empty)"))
+	return "\n".join(lines)
+
+func _format_bulleted(lines: Array, empty_text: String) -> String:
+	if lines.is_empty():
+		return empty_text
+	var out: Array[String] = []
+	for line in lines:
+		out.append("• %s" % str(line))
+	return "\n".join(out)
+
+func _format_secrets(secrets: Array) -> String:
+	if secrets.is_empty():
+		return "No secrets were generated this run."
+	var out: Array[String] = []
+	for s in secrets:
+		var discovered: bool = s.get("discovered", false)
+		var tag: String = "[color=#66e07a]discovered[/color]" if discovered else "[color=#888888]hidden[/color]"
+		out.append("• %s (%s)" % [s.get("description", ""), tag])
+	return "\n".join(out)
+
+func _format_timeline(lines: Array) -> String:
+	if lines.is_empty():
+		return "Nothing significant happened tonight."
+	return "\n↓\n".join(lines)
+
+func _on_replay_same_seed_pressed() -> void:
+	_ensure_node_references()
+	if simulation_runner == null:
+		return
+	if end_run_panel != null:
+		end_run_panel.visible = false
+	simulation_runner.reset_simulation()
+
+func _on_new_seed_pressed() -> void:
+	_ensure_node_references()
+	if simulation_runner == null:
+		return
+	if end_run_panel != null:
+		end_run_panel.visible = false
+	simulation_runner.reset_simulation(_generate_new_seed())
+
+func _on_run_again_pressed() -> void:
+	_ensure_node_references()
+	if simulation_runner == null:
+		return
+	if end_run_panel != null:
+		end_run_panel.visible = false
+	simulation_runner.reset_simulation(_generate_new_seed())
+	simulation_runner.set_paused(true)
+	if setup_panel != null:
+		setup_panel.visible = true
+		_sync_directives_ui_from_runner()
+
+## New seeds for replay buttons come from wall-clock time (a meta/UI-level
+## choice of which seed to hand the simulation), never from inside the
+## deterministic simulation itself.
+func _generate_new_seed() -> int:
+	return int(Time.get_ticks_usec() % 100000000)
 
 func _on_pause_pressed() -> void:
 	if simulation_runner != null:

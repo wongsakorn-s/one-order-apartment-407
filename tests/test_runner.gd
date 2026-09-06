@@ -21,10 +21,12 @@ const TestSocialInteractionsScript = preload("res://tests/test_social_interactio
 const TestCausalEventsScript = preload("res://tests/test_causal_events.gd")
 const TestObserverUIScript = preload("res://tests/test_observer_ui.gd")
 const TestRoom407Script = preload("res://tests/test_room_407.gd")
+const TestRunEvaluatorScript = preload("res://tests/test_run_evaluator.gd")
+const TestEndRunScreenScript = preload("res://tests/test_end_run_screen.gd")
 
 func _init() -> void:
 	print("========================================")
-	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-015")
+	print(" RUNNING AUTOMATED TESTS: TASK-001 - TASK-016")
 	print("========================================")
 
 	var total_passed: int = 0
@@ -210,6 +212,28 @@ func _init() -> void:
 	print("\n[SUITE] TestRoom407:")
 	var room_407_results: Array[Dictionary] = TestRoom407Script.run_all()
 	for res in room_407_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 18. Run Evaluator / Causal Timeline Tests (TASK-016)
+	print("\n[SUITE] TestRunEvaluator:")
+	var run_eval_results: Array[Dictionary] = TestRunEvaluatorScript.run_all()
+	for res in run_eval_results:
+		if res.get("passed", false):
+			print("  [PASS] %s" % res["name"])
+			total_passed += 1
+		else:
+			print("  [FAIL] %s - %s" % [res.get("name", "unknown_test"), res.get("error", "unknown error")])
+			total_failed += 1
+
+	# 19. End Run Screen UI Tests (TASK-016)
+	print("\n[SUITE] TestEndRunScreen:")
+	var end_run_results: Array[Dictionary] = TestEndRunScreenScript.run_all()
+	for res in end_run_results:
 		if res.get("passed", false):
 			print("  [PASS] %s" % res["name"])
 			total_passed += 1

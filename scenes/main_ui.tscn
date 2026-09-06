@@ -463,3 +463,172 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Apply Directives & Start Simulation"
+
+[node name="EndRunPanel" type="PanelContainer" parent="RootControl"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 120.0
+offset_top = 50.0
+offset_right = -120.0
+offset_bottom = -50.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_side_panel")
+
+[node name="EndRunMargin" type="MarginContainer" parent="RootControl/EndRunPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="EndRunVBox" type="VBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EndRunHeaderHBox" type="HBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox"]
+layout_mode = 2
+
+[node name="EndRunTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunHeaderHBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.85, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "RUN COMPLETE — 06:00"
+
+[node name="EndRunHeaderSpacer" type="Control" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunHeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EndRunSeedLabel" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunHeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.82, 0.95, 1)
+theme_override_font_sizes/font_size = 14
+text = "Seed: -"
+
+[node name="EndRunHSeparator1" type="HSeparator" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox"]
+layout_mode = 2
+
+[node name="EndRunScroll" type="ScrollContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="EndRunBodyHBox" type="HBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="EndRunLeftColumn" type="VBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="EndRunDirectivesText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunFinalStateTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Protagonist Final State"
+
+[node name="EndRunFinalStateText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunRelationshipsTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Major Relationships"
+
+[node name="EndRunRelationshipsText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunSecretsTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Discovered Secrets"
+
+[node name="EndRunSecretsText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunMemoriesTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Major Memories"
+
+[node name="EndRunMemoriesText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunLeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 110)
+layout_mode = 2
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunRightColumn" type="VBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="EndRunTimelineTitle" type="Label" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunRightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Causal Timeline"
+
+[node name="EndRunTimelineText" type="RichTextLabel" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunScroll/EndRunBodyHBox/EndRunRightColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 480)
+layout_mode = 2
+size_flags_vertical = 3
+bbcode_enabled = true
+fit_content = true
+text = ""
+
+[node name="EndRunHSeparator2" type="HSeparator" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox"]
+layout_mode = 2
+
+[node name="EndRunButtonsHBox" type="HBoxContainer" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ReplaySameSeedButton" type="Button" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunButtonsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Replay Same Seed"
+
+[node name="NewSeedButton" type="Button" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunButtonsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "New Seed"
+
+[node name="RunAgainButton" type="Button" parent="RootControl/EndRunPanel/EndRunMargin/EndRunVBox/EndRunButtonsHBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Run Again (Change Directives)"
